@@ -1,0 +1,27 @@
+{
+  "RepeatCount": 3,
+  "RepeatForever": false,
+  "Steps": [
+    {
+      "Kind": "Key",
+      "Input": "1",
+      "DelayBeforeMs": 0,
+      "HoldMs": 60,
+      "DelayAfterMs": 500
+    },
+    {
+      "Kind": "Mouse",
+      "Input": "Левая",
+      "DelayBeforeMs": 100,
+      "HoldMs": 50,
+      "DelayAfterMs": 1000
+    },
+    {
+      "Kind": "Key",
+      "Input": "F2",
+      "DelayBeforeMs": 0,
+      "HoldMs": 80,
+      "DelayAfterMs": 250
+    }
+  ]
+}

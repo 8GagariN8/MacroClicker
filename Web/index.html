@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<script>
+// Install before the main script so a syntax/startup error cannot leave the host waiting silently.
+window.addEventListener('error',function(e){
+ if(window.chrome&&window.chrome.webview)window.chrome.webview.postMessage({command:'startupError',message:(e.message||'Ошибка скрипта')+'; line '+e.lineno});
+});
+window.addEventListener('unhandledrejection',function(){
+ if(window.chrome&&window.chrome.webview)window.chrome.webview.postMessage({command:'startupError',message:'Необработанная ошибка асинхронного скрипта'});
+});
+</script>
+<title>MacroClicker</title>
+<style>
+:root{color-scheme:dark;--bg:#212121;--side:#191919;--surface:#292929;--hover:#333;--field:#242424;--line:#3b3b3b;--soft:#2e2e2e;--text:#ececec;--muted:#aaa;--faint:#858585;--accent:#a0dbc6;--accent-bg:#253a32;--primary:#ededed;--primary-text:#202020;--danger:#ffadad;--shadow:0 20px 80px #0006}
+:root.light{color-scheme:light;--bg:#faf9f7;--side:#eeedea;--surface:#fff;--hover:#e7e6e3;--field:#f5f4f1;--line:#d9d8d4;--soft:#e9e8e5;--text:#262626;--muted:#666;--faint:#757575;--accent:#276b53;--accent-bg:#e4efe9;--primary:#252525;--primary-text:#fff;--danger:#a32d2d;--shadow:0 20px 80px #0002}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;height:100vh;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;border:1px solid transparent;border-radius:9px;background:transparent;min-height:36px;padding:7px 12px;transition:background .12s,color .12s}
+button:hover{background:var(--hover)}button:active{filter:brightness(.91)}button:disabled{opacity:.4;cursor:default}button:disabled:hover{background:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+input,select,textarea{background:var(--field);border:1px solid var(--line);border-radius:9px;min-height:38px;padding:8px 11px;min-width:0}
+select{width:100%}textarea{resize:vertical;line-height:1.6}input::placeholder,textarea::placeholder{color:var(--faint)}input[type=number]{width:100px}input[type=checkbox]{accent-color:var(--accent);min-height:0;width:17px;height:17px;margin:0;cursor:pointer}
+svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.primary{background:var(--primary);color:var(--primary-text);font-weight:600}.primary:hover{background:var(--primary);filter:brightness(.88)}.primary:disabled:hover{background:var(--primary)}
+.secondary{background:var(--surface);border-color:var(--line)}.muted{color:var(--muted)}.icon-button{padding:8px;width:36px;flex-shrink:0}.danger{color:var(--danger)}.grow{flex:1;min-width:0}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);height:100vh}.sidebar{background:var(--side);padding:22px 12px 12px;display:flex;flex-direction:column;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;padding:0 12px 16px;letter-spacing:-.4px}.brand svg{color:var(--accent);width:25px;height:25px}
+.new-macro{justify-content:flex-start;padding:10px 12px;min-height:42px;width:100%;font-weight:500}.search{display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--faint)}.search input{border:0;background:transparent;outline-offset:0;width:100%;padding:8px 0;font-size:13px}
+.side-label{font-size:12px;color:var(--faint);padding:10px 12px 2px}.library{overflow:auto;flex:1}.library-item{width:100%;text-align:left;justify-content:flex-start;gap:10px;padding:11px 12px;margin-bottom:3px;min-width:0}.library-item.active{background:var(--hover)}.library-item span{overflow:hidden;text-overflow:ellipsis}.library-item svg{width:17px;color:var(--muted)}.library-empty{color:var(--faint);font-size:12px;padding:12px}
+.side-bottom{border-top:1px solid var(--soft);padding-top:8px}.side-bottom button{display:flex;width:100%;justify-content:flex-start;color:var(--muted);padding-left:12px}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0}.header{display:flex;align-items:center;gap:16px;padding:26px 32px 18px}.eyebrow{font-size:12px;color:var(--faint);margin-bottom:2px}.macro-title{font-size:23px;line-height:1.25;font-weight:600;letter-spacing:-.65px;border:1px solid transparent;background:transparent;padding:3px 0;width:100%;border-radius:4px;min-height:34px}.macro-title:hover{border-bottom-color:var(--line)}.macro-title:focus{background:var(--field);padding-left:8px}.header-actions{display:flex;gap:6px;align-items:center}.save-state{font-size:12px;color:var(--faint);margin-right:6px}
+.toolbar{display:flex;align-items:center;gap:8px;margin:0 32px 18px;padding-bottom:16px;border-bottom:1px solid var(--soft)}.segmented{background:var(--side);display:flex;padding:3px;border-radius:10px;gap:2px}.segmented button{min-height:31px;font-size:13px;padding:5px 12px;border-radius:7px;color:var(--muted)}.segmented button[aria-selected=true]{background:var(--hover);color:var(--text)}.record{color:var(--muted);font-size:13px}.record.recording{color:var(--danger)}
+.workspace{min-height:0;overflow:auto;flex:1;padding:8px 32px 28px}.canvas{max-width:840px;margin:0 auto;min-height:100%}.section-heading{display:flex;align-items:center;justify-content:space-between;margin:0 0 20px}.section-heading h2{font-size:16px;font-weight:600;margin:0}.section-heading span{font-size:12px;color:var(--faint)}
+.empty{min-height:300px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 20px}.empty-symbol{display:flex;align-items:center;justify-content:center;width:66px;height:66px;border:1px solid var(--line);border-radius:19px;background:var(--surface);color:var(--accent);margin-bottom:22px}.empty-symbol svg{width:30px;height:30px}.empty h2{font-size:24px;font-weight:500;letter-spacing:-.5px;margin:0 0 8px}.empty p{max-width:380px;color:var(--muted);font-size:14px;margin:0 0 23px}.empty .hint{font-size:12px;margin-top:14px;color:var(--faint)}
+.node{border:1px solid var(--line);border-radius:15px;background:var(--surface);padding:20px 22px}.node-header{display:flex;align-items:center;gap:13px}.node-number{background:var(--bg);border-radius:9px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--muted);font:12px ui-monospace,Consolas,monospace}
+.node-title{font-size:16px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}.node-target{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}.node-target.unbound{color:var(--danger)}.node-preview{display:flex;gap:7px;flex-wrap:wrap;margin:16px 0 0 51px}.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--bg);border-radius:6px;padding:4px 8px;max-width:260px}.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chip svg{width:13px;height:13px}.connector{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:11px;height:36px;margin-left:40px}.connector:before{content:"";height:36px;width:1px;background:var(--line)}.connector svg{width:13px}.add-node{width:100%;border:1px dashed var(--line);border-radius:12px;color:var(--muted);margin-top:20px;padding:12px}.add-node:hover{border-color:var(--faint)}
+.runbar{display:flex;align-items:center;gap:22px;background:var(--surface);border:1px solid var(--line);border-radius:17px;margin:0 32px 12px;padding:14px 16px 14px 22px}.repeat-label{font-size:12px;color:var(--muted);margin-bottom:7px}.repeat-options{display:flex;align-items:center;gap:12px}.repeat-options input[type=number]{width:72px;height:36px;min-height:36px;padding:5px 9px}.check{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;white-space:nowrap}.run-summary{font-size:13px;color:var(--muted)}.hotkey{font-size:12px;color:var(--faint);margin-top:5px}.start-button{width:78px;height:78px;min-width:78px;border-radius:14px;display:flex;flex-direction:column;gap:4px;padding:9px}.start-button svg{width:22px;height:22px}.start-button span{font-size:12px}.statusbar{display:flex;gap:12px;justify-content:space-between;font-size:11px;color:var(--faint);padding:0 32px 12px;min-height:27px}.statusbar #status{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.statusbar #coordinates{white-space:nowrap}
+.json-tools{display:flex;gap:8px;align-items:center;margin-bottom:12px}.json-tools span{font-size:12px;color:var(--faint)}.code-editor{position:relative;min-height:360px;height:calc(100% - 60px);border:1px solid var(--line);border-radius:12px;background:var(--side);overflow:hidden}.code-editor pre,.code-editor textarea{font:13px/1.7 Consolas,"Cascadia Code",ui-monospace,monospace;white-space:pre;tab-size:2;margin:0;padding:20px;border:0;border-radius:0;width:100%;height:100%;overflow:auto}.code-editor pre{pointer-events:none;color:var(--text);position:absolute;inset:0}.code-editor textarea{position:absolute;inset:0;color:transparent;caret-color:var(--text);background:transparent;resize:none;outline:none}.code-editor textarea::selection{background:#568f9b66;color:transparent}.token-key{color:#b5c8ea}.token-string{color:#aad3b8}.token-number{color:#e5bd94}.token-bool{color:#d5b6e4}.light .token-key{color:#275f99}.light .token-string{color:#357244}.light .token-number{color:#a25318}.light .token-bool{color:#874395}
+dialog{padding:0;border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--text);box-shadow:var(--shadow);width:min(930px,calc(100vw - 64px));max-height:calc(100vh - 52px);overflow:hidden}dialog::backdrop{background:#0008;backdrop-filter:blur(3px)}.dialog-head{display:flex;align-items:center;padding:22px 26px 16px;gap:12px}.dialog-head h2{font-size:19px;letter-spacing:-.35px;font-weight:600;margin:0}.dialog-body{padding:0 26px 22px;overflow:auto;max-height:calc(100vh - 210px)}.dialog-footer{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:15px 26px;border-top:1px solid var(--soft);background:var(--bg)}.dialog-footer .muted{font-size:12px;margin-right:auto}.fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}.field{display:flex;flex-direction:column;gap:7px}.field>span{font-size:12px;color:var(--muted)}.field input,.field select{width:100%;height:38px}.field.full{grid-column:1/-1}.window-row{display:flex;gap:8px;align-items:center}.window-row select{flex:1}.window-row button{height:38px}.subheading{display:flex;gap:8px;align-items:center;margin:18px 0 12px}.subheading h3{font-size:14px;margin:0;flex:1}.step-list{border-top:1px solid var(--soft)}.step-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--soft);padding:12px 0}.step-glyph{background:var(--surface);border-radius:9px;width:35px;height:35px;display:flex;align-items:center;justify-content:center;color:var(--muted)}.step-name{font-size:13px;font-weight:500}.step-detail{font-size:11px;color:var(--faint);margin-top:2px}.step-row .icon-button{width:30px;min-height:30px;padding:5px}.step-row .icon-button svg{width:16px}.step-empty{color:var(--faint);font-size:13px;padding:25px 0;text-align:center}
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}.type-grid button{flex-direction:column;gap:8px;min-height:76px;border:1px solid var(--line);font-size:12px;white-space:normal}.type-grid button.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}.type-grid svg{width:23px;height:23px}.note{font-size:12px;line-height:1.65;color:var(--muted);border-radius:9px;background:var(--surface);padding:12px 14px;margin:12px 0}.timing{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.setting-row{display:flex;align-items:center;gap:24px;padding:18px 0;border-bottom:1px solid var(--soft)}.setting-row h3{font-size:14px;font-weight:500;margin:0 0 4px}.setting-row p{font-size:12px;color:var(--muted);margin:0;max-width:500px}.switch{appearance:none;width:37px!important;height:22px!important;background:var(--line);border-radius:15px;border:0;position:relative;flex-shrink:0;cursor:pointer;padding:0}.switch:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:var(--text);left:3px;top:3px;transition:left .15s}.switch:checked{background:var(--accent)}.switch:checked:after{left:18px;background:var(--bg)}.setting-keys{padding-top:20px}
+.menu{position:fixed;z-index:30;min-width:190px;padding:5px;background:var(--surface);border:1px solid var(--line);border-radius:11px;box-shadow:0 8px 30px #0004}.menu button{width:100%;justify-content:flex-start;font-size:13px}.menu hr{border:0;border-top:1px solid var(--soft);margin:4px}.toast{position:fixed;z-index:100;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 18px;background:var(--surface);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);max-width:650px;font-size:13px}.toast.error{border-color:var(--danger)}.help-content{white-space:pre-wrap;font:13px/1.8 "Segoe UI",system-ui,sans-serif;color:var(--muted);margin:18px 0 0}.preview-badge{font-size:10px;color:var(--faint);padding:0 12px}
+[hidden]{display:none!important}.locked{pointer-events:none;opacity:.5}
+#logsText{font:12px/1.65 Consolas,"Cascadia Code",ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.step-number{width:28px;flex-shrink:0;text-align:center;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}.step-name{display:flex;align-items:center;flex-wrap:wrap;gap:7px;color:var(--text)}.step-key{display:inline-block;min-width:29px;max-width:100%;padding:3px 9px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--surface);color:var(--text);font:600 14px/1.35 "Segoe UI",system-ui,sans-serif;text-align:center;overflow-wrap:anywhere}.key-join{font-size:12px;color:var(--muted)}.step-glyph{flex-shrink:0}
+@media(max-width:1050px){.app{grid-template-columns:205px minmax(0,1fr)}.header{padding:22px 24px 16px}.toolbar{margin-left:24px;margin-right:24px}.workspace{padding-left:24px;padding-right:24px}.runbar{margin-left:24px;margin-right:24px;gap:12px;padding-left:16px}.save-state{display:none}.hotkey{font-size:11px}.run-summary{font-size:12px}.node{padding:17px}.node-preview{margin-left:0}.header-actions button{font-size:13px}}
+@media(max-width:760px){.app{grid-template-columns:165px minmax(0,1fr)}.brand{font-size:14px;padding-left:3px}.sidebar{padding-left:8px;padding-right:8px}.header,.workspace{padding-left:16px;padding-right:16px}.toolbar,.runbar{margin-left:16px;margin-right:16px}.run-summary{display:none}.runbar .grow{flex:1}.fields{grid-template-columns:1fr}.type-grid{grid-template-columns:repeat(3,1fr)}.node-header{gap:8px}.node-number{display:none}.node-preview{margin-left:0}.toolbar .record span{display:none}.macro-title{font-size:20px}.header-actions #saveButton span{display:none}.statusbar{padding-left:16px;padding-right:16px}.statusbar #coordinates{max-width:45%;overflow:hidden}}
+@media(forced-colors:active){:root{--bg:Canvas;--side:Canvas;--surface:Canvas;--text:CanvasText;--muted:CanvasText;--faint:CanvasText;--line:ButtonText;--soft:ButtonText;--primary:ButtonFace;--primary-text:ButtonText;--accent:Highlight}.code-editor pre{visibility:hidden}.code-editor textarea{color:CanvasText}.switch{appearance:auto}button{border-color:ButtonText}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}dialog::backdrop{backdrop-filter:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><i data-icon="flow"></i>MacroClicker</div>
+    <button class="new-macro" id="newMacro"><i data-icon="plus"></i>Новый макрос</button>
+    <div class="search"><i data-icon="search"></i><input id="search" aria-label="Поиск макросов" placeholder="Поиск макросов"></div>
+    <div class="side-label">Мои макросы</div>
+    <nav class="library" id="library" aria-label="Сохранённые макросы"></nav>
+    <div class="side-bottom">
+      <button id="importButton"><i data-icon="import"></i>Импорт макроса</button>
+      <button id="settingsButton"><i data-icon="settings"></i>Настройки</button>
+      <button id="logsButton"><i data-icon="code"></i>Журнал</button>
+      <button id="helpButton"><i data-icon="help"></i>Справка</button>
+    </div>
+    <div class="preview-badge" id="previewBadge" hidden>Предпросмотр · без Windows-ввода</div>
+  </aside>
+  <main class="main">
+    <header class="header">
+      <div class="grow"><div class="eyebrow">Рабочее пространство</div><input id="macroName" class="macro-title" aria-label="Название макроса" value="Новый макрос" maxlength="250"></div>
+      <div class="header-actions"><span class="save-state" id="saveState">Не сохранён</span><button id="saveButton" class="secondary"><i data-icon="save"></i><span>Сохранить</span></button><button id="macroMore" class="icon-button" aria-label="Другие действия с макросом"><i data-icon="more"></i></button></div>
+    </header>
+    <div class="toolbar">
+      <div class="segmented" role="tablist" aria-label="Вид редактора"><button id="visualTab" role="tab" aria-selected="true"><i data-icon="flow"></i>Сценарий</button><button id="jsonTab" role="tab" aria-selected="false"><i data-icon="code"></i>JSON</button></div>
+      <div class="grow"></div><button class="record" id="recordButton"><i data-icon="record"></i><span>Записать действия</span></button>
+    </div>
+    <section class="workspace" id="workspace">
+      <div class="canvas" id="canvas"></div>
+      <div id="jsonView" style="height:100%" hidden><div class="json-tools"><button id="formatJson" class="secondary">Форматировать</button><button id="applyJson">Применить</button><span class="grow"></span><span>JSON · UTF-8</span></div><div class="code-editor"><pre id="jsonHighlight" aria-hidden="true"></pre><textarea id="jsonText" wrap="off" spellcheck="false" aria-label="JSON макроса"></textarea></div></div>
+    </section>
+    <section class="runbar" aria-label="Запуск макроса">
+      <div><div class="repeat-label">Повторение сценария</div><div class="repeat-options"><input id="repeats" type="number" min="1" max="100000" value="1" aria-label="Количество повторов"><label class="check"><input id="forever" type="checkbox">Бесконечно</label></div></div>
+      <div class="grow"><div class="run-summary" id="runSummary">Добавьте первое окно</div><div class="hotkey" id="hotkeyHint">Старт / стоп · Ctrl+Alt+F8</div></div>
+      <button class="primary start-button" id="startButton"><i data-icon="play"></i><span>Старт</span></button>
+    </section>
+    <footer class="statusbar"><span id="status" role="status">Готово к запуску</span><span id="coordinates">Координаты курсора</span></footer>
+  </main>
+</div>
+<dialog id="nodeDialog" aria-labelledby="nodeHeading">
+  <div class="dialog-head"><div class="grow"><div class="eyebrow">Окно и его действия</div><h2 id="nodeHeading">Редактор узла</h2></div><button class="icon-button" data-close="nodeDialog" aria-label="Закрыть редактор узла"><i data-icon="close"></i></button></div>
+  <div class="dialog-body">
+    <div class="fields">
+      <label class="field full"><span>Название узла</span><input id="nodeName" maxlength="250"></label>
+      <label class="field full"><span>Окно приложения · необязательно</span><div class="window-row"><select id="nodeWindow" aria-label="Окно приложения"></select><button class="secondary" id="refreshWindows"><i data-icon="refresh"></i>Обновить</button></div><span id="windowModeHint">Можно использовать текущее активное окно.</span></label>
+    </div>
+    <div class="subheading"><h3>Действия <span class="muted" id="stepCount"></span></h3><button id="quickPause">Пауза</button><button id="quickDouble">Двойной клик</button><button class="secondary" id="addStep"><i data-icon="plus"></i>Действие</button></div>
+    <div id="stepList" class="step-list"></div>
+  </div>
+  <div class="dialog-footer"><span class="muted" id="nodeCoordinates"></span><button data-close="nodeDialog">Отмена</button><button class="primary" id="saveNode">Сохранить узел</button></div>
+</dialog>
+<dialog id="stepDialog" aria-labelledby="stepHeading">
+  <div class="dialog-head"><h2 class="grow" id="stepHeading">Добавить действие</h2><button class="icon-button" data-close="stepDialog" aria-label="Закрыть действие"><i data-icon="close"></i></button></div>
+  <div class="dialog-body">
+    <div class="type-grid" id="stepTypes"></div>
+    <div class="fields" id="stepFields"></div>
+    <div id="stepNote" class="note" hidden></div>
+    <div class="timing" id="stepTiming"></div>
+  </div>
+  <div class="dialog-footer"><button data-close="stepDialog">Отмена</button><button class="primary" id="saveStep">Добавить действие</button></div>
+</dialog>
+<dialog id="settingsDialog" style="max-width:690px" aria-labelledby="settingsHeading">
+  <div class="dialog-head"><h2 id="settingsHeading" class="grow">Настройки</h2><button class="icon-button" data-close="settingsDialog" aria-label="Закрыть настройки"><i data-icon="close"></i></button></div>
+  <div class="dialog-body">
+    <div class="setting-row"><div class="grow"><h3>Тёмная тема</h3><p>Нейтральные оттенки и мягкий контраст.</p></div><input type="checkbox" class="switch" id="darkTheme" aria-label="Тёмная тема"></div>
+    <div class="setting-row"><div class="grow"><h3>Системные паузы мыши</h3><p id="systemPauseInfo"></p></div><input type="checkbox" class="switch" id="safePauses" aria-label="Системные паузы мыши"></div>
+    <div class="setting-row"><div class="grow"><h3>Разные сочетания для старта и остановки</h3><p>По умолчанию одно сочетание переключает выполнение.</p></div><input type="checkbox" class="switch" id="separateHotkeys" aria-label="Разные сочетания"></div>
+    <div class="fields setting-keys"><label class="field"><span id="startHotkeyLabel">Старт / стоп</span><input id="startHotkey" placeholder="Ctrl+Alt+F8"></label><label class="field" id="stopHotkeyField" hidden><span>Остановка</span><input id="stopHotkey" placeholder="Ctrl+Alt+F9"></label></div>
+    <div class="note">Введите сочетание: Ctrl+Alt+F8, Shift+F9, Win+F7. Не используйте сочетание из самого макроса. F10 останавливает запись.</div>
+  </div>
+  <div class="dialog-footer"><button data-close="settingsDialog">Отмена</button><button class="primary" id="saveSettings">Применить</button></div>
+</dialog>
+<dialog id="helpDialog" aria-labelledby="helpHeading">
+  <div class="dialog-head"><h2 id="helpHeading" class="grow">Справка MacroClicker</h2><button class="icon-button" data-close="helpDialog" aria-label="Закрыть справку"><i data-icon="close"></i></button></div>
+  <div class="dialog-body"><select id="helpTopic" aria-label="Раздел справки"><option value="QuickStart">Быстрый старт</option><option value="Manual">Подробная инструкция</option><option value="WindowsChecks">Проверка на Windows</option><option value="TestResults">Отчёт о проверках</option><option value="NuGet">Диагностика NuGet</option></select><pre class="help-content" id="helpText"></pre></div>
+</dialog>
+<dialog id="logsDialog" aria-labelledby="logsHeading">
+  <div class="dialog-head"><div class="grow"><div class="eyebrow">Диагностика текущего запуска</div><h2 id="logsHeading">Журнал приложения</h2></div><button class="icon-button" data-close="logsDialog" aria-label="Закрыть журнал"><i data-icon="close"></i></button></div>
+  <div class="dialog-body"><p class="muted">Этапы запуска, выполнение макросов и ошибки. Полные журналы сохраняются на компьютере; записи предыдущих запусков доступны в папке журналов.</p><pre class="help-content" id="logsText" tabindex="0" aria-label="Записи журнала"></pre></div>
+  <div class="dialog-footer"><button id="logsFolder">Папка журналов</button><span class="grow"></span><button id="refreshLogs">Обновить</button><button class="primary" id="copyLogs">Копировать</button></div>
+</dialog>
+<div id="menu" class="menu" hidden></div><div id="toast" class="toast" role="alert" hidden></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const paths={
+plus:'<path d="M12 5v14M5 12h14"/>',close:'<path d="m6 6 12 12M18 6 6 18"/>',
+flow:'<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/><path d="M6.5 10v5a3 3 0 0 0 3 3H14M10 6.5h5a3 3 0 0 1 3 3V14"/>',
+search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',
+save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/>',
+more:'<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',
+code:'<path d="m7 6-5 6 5 6m10-12 5 6-5 6m-3-14-4 16"/>',
+play:'<path d="m8 4 12 8-12 8Z" fill="currentColor" stroke="none"/>',
+stop:'<rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" stroke="none"/>',
+record:'<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
+window:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M7 6.5h.1M10 6.5h.1"/>',
+settings:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--side)"/><circle cx="15" cy="17" r="3" fill="var(--side)"/>',
+help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4.5 1.5L12 12v1M12 17h.01"/>',
+import:'<path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/>',
+export:'<path d="M12 16V4m-4 4 4-4 4 4M4 16v4h16v-4"/>',
+refresh:'<path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 6a8 8 0 0 1 13 3M5 15a8 8 0 0 0 13 3"/>',
+key:'<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 15h6"/>',
+mouse:'<rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 2v7M6 10h12"/>',
+double:'<rect x="5" y="4" width="12" height="18" rx="6"/><path d="M11 4v6M5 11h12M18 3l2-2M20 7h3"/>',
+pause:'<path d="M9 5v14M15 5v14"/>',
+text:'<path d="M4 5h16M12 5v15M8 20h8"/>',
+move:'<path d="M12 2v20M2 12h20m-13-7 3-3 3 3m-6 14 3 3 3-3M5 9l-3 3 3 3m14-6 3 3-3 3"/>',
+wheel:'<rect x="6" y="2" width="12" height="20" rx="6"/><path d="m10 8 2-2 2 2m-4 5 2 2 2-2"/>',
+up:'<path d="m6 14 6-6 6 6"/>',down:'<path d="m6 10 6 6 6-6"/>',
+edit:'<path d="m14 4 6 6M3 21l5-1L21 7a2 2 0 0 0-4-4L4 16Z"/>',
+copy:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
+trash:'<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/>'
+};
+function icon(name){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('aria-hidden','true');s.innerHTML=paths[name]||paths.flow;return s}
+document.querySelectorAll('[data-icon]').forEach(e=>e.replaceWith(icon(e.dataset.icon)));
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+function button(text,glyph,fn,cls=''){const b=el('button',cls);if(glyph)b.append(icon(glyph));if(text)b.append(el('span','',text));b.onclick=fn;return b}
+function small(glyph,label,fn){const b=button('',glyph,fn,'icon-button');b.title=label;b.setAttribute('aria-label',label);return b}
+const clone=o=>JSON.parse(JSON.stringify(o));
+function counted(n,forms){const last=n%10,lastTwo=n%100;return n+' '+forms[lastTwo>=11&&lastTwo<=14?2:last===1?0:last>=2&&last<=4?1:2]}
+const baseStep=kind=>({Kind:kind,Input:['Mouse','DoubleClick'].includes(kind)?'Левая':'1',Action:'Tap',DelayBeforeMs:0,HoldMs:50,DelayAfterMs:100,UseCoordinates:false,X:0,Y:0,CoordinateSpace:'Window',MoveDelayMs:100,Text:'',CharacterDelayMs:10,WheelDelta:120,HorizontalWheel:false});
+const newDoc=()=>({Version:2,Name:'Новый макрос',RepeatCount:1,RepeatForever:false,SafeMousePauses:true,Nodes:[],Steps:[]});
+const kinds={Key:['Клавиши','key'],Mouse:['Клик мышью','mouse'],DoubleClick:['Двойной клик','double'],Pause:['Пауза','pause'],Text:['Текст','text'],Move:['Перемещение','move'],Wheel:['Прокрутка','wheel']};
+let doc=newDoc(),library=[],windows=[],keys=['1','2','3','A','B','C','Enter','Space','Tab','F1','F8','ControlKey','ShiftKey','Menu','LWin'];
+let settings={DarkTheme:true,SeparateStopHotkey:false},startKey='Ctrl+Alt+F8',stopKey='Ctrl+Alt+F9',doubleMs=500;
+let jsonMode=false,dirty=false,busy=false,running=false,recording=false,nodeDraft=null,nodeIndex=-1,stepDraft=null,stepIndex=-1,toastTimer;
+const native=!!window.chrome?.webview;
+function post(command,data={}){if(native)window.chrome.webview.postMessage({command,...data});else preview(command,data)}
+function markDirty(){dirty=true;$('saveState').textContent='Есть изменения';post('dirty')}
+function toast(text,error=false){$('toast').textContent=text;$('toast').classList.toggle('error',error);$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,6500)}
+function cleanDocument(value){const copy=clone(value);copy.Nodes?.forEach(n=>delete n.TargetId);return copy}
+function canonicalDocument(value){
+ function sorted(v){if(Array.isArray(v))return v.map(sorted);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,sorted(v[k])]));return v}
+ return JSON.stringify(sorted(cleanDocument(value)));
+}
+function readJsonDocument(){
+ const parsed=validate(JSON.parse($('jsonText').value));
+ // Keep the existing model (including transient window bindings) for a view-only round trip.
+ return canonicalDocument(parsed)===canonicalDocument(doc)?doc:parsed;
+}
+function markJsonEdit(){
+ try{if(readJsonDocument()!==doc)markDirty()}catch{markDirty()}
+}
+function validate(value){
+ if(!value||value.Version!==2||!Array.isArray(value.Nodes)||typeof value.Name!=='string')throw Error('Нужны Version: 2, Name и массив Nodes.');
+ if(!Number.isInteger(value.RepeatCount)||value.RepeatCount<1||value.RepeatCount>100000)throw Error('Повторения: целое число от 1 до 100000.');
+ if(value.Nodes.length>1000)throw Error('Допустимо не более 1000 узлов.');
+ for(const n of value.Nodes){if(!n||typeof n.Name!=='string'||typeof n.ProcessName!=='string'||typeof n.WindowTitle!=='string'||!Array.isArray(n.Steps)||n.Steps.length>50000)throw Error('Некорректный узел.');
+ for(const s of n.Steps){if(!s||!kinds[s.Kind])throw Error('Неизвестный тип действия.');for(const p of ['DelayBeforeMs','DelayAfterMs','MoveDelayMs','HoldMs'])if(s[p]!==undefined&&(!Number.isInteger(s[p])||s[p]<(p==='HoldMs'?1:0)||s[p]>600000))throw Error('Интервалы: целые числа в пределах 0–600000 мс; удержание от 1 мс.');}}
+ return value;
+}
+function getDoc(){
+ if(jsonMode)return readJsonDocument();
+ doc.Name=$('macroName').value.trim()||'Новый макрос';doc.RepeatCount=Number($('repeats').value);doc.RepeatForever=$('forever').checked;return validate(doc);
+}
+window.exportDocument=()=>{try{if(nodeDraft||stepDraft)throw Error('Сохраните или отмените редактирование узла.');return{document:getDoc()}}catch(e){return{error:e.message}}};
+function command(name,extra={},withDoc=false){try{if(busy&&name!=='stop')return;post(name,{...extra,...(withDoc?{document:getDoc()}:{})})}catch(e){toast(e.message,true)}}
+function show(id){$('menu').hidden=true;$(id).showModal();post('modal',{open:true})}
+function close(id){$(id).close();if(id==='nodeDialog')nodeDraft=null;if(id==='stepDialog')stepDraft=null;if(id==='settingsDialog')setTheme(settings.DarkTheme);post('modal',{open:!!document.querySelector('dialog[open]')})}
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>close(b.dataset.close));
+document.querySelectorAll('dialog').forEach(d=>d.addEventListener('cancel',e=>{e.preventDefault();close(d.id)}));
+function menu(anchor,items){const m=$('menu');m.replaceChildren();for(const item of items){const b=button(item[0],item[1],()=>{m.hidden=true;item[2]()},item[3]||'');m.append(b)}m.hidden=false;const r=anchor.getBoundingClientRect();m.style.left=Math.min(r.right-m.offsetWidth,innerWidth-m.offsetWidth-12)+'px';m.style.top=Math.min(r.bottom+6,innerHeight-m.offsetHeight-12)+'px'}
+document.addEventListener('pointerdown',e=>{if(!$('menu').contains(e.target)&&!e.target.closest('button'))$('menu').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('menu').hidden=true;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(!document.querySelector('dialog[open]'))command('save',{},true)}});
+function setTheme(dark){document.documentElement.classList.toggle('light',!dark);post('themePreview',{dark:!!dark})}
+function renderLibrary(){const list=$('library');list.replaceChildren();const query=$('search').value.toLocaleLowerCase();for(const item of library.filter(x=>x.name.toLocaleLowerCase().includes(query))){const b=button(item.name,'flow',()=>command('open',{id:item.id}),'library-item'+(item.active?' active':''));b.title=item.name;b.setAttribute('aria-current',item.active?'page':'false');list.append(b)}if(!list.children.length)list.append(el('div','library-empty',query?'Ничего не найдено':'Сохранённые макросы появятся здесь'))}
+function keyPresentation(s){
+ const aliases={SPACE:'Пробел',ПРОБЕЛ:'Пробел',RETURN:'Enter',CONTROLKEY:'Ctrl',SHIFTKEY:'Shift',MENU:'Alt',ESCAPE:'Esc',CTRL:'Ctrl',ALT:'Alt',SHIFT:'Shift',WIN:'Win',LWIN:'Левый Win',RWIN:'Правый Win',TAB:'Tab',ENTER:'Enter'};
+ const keys=String(s.Input||'').split('+').map(raw=>{raw=raw.trim();const upper=raw.toUpperCase();const digit=/^D([0-9])$/.exec(upper),numpad=/^NUMPAD([0-9])$/.exec(upper);return{raw,label:aliases[upper]||(digit?digit[1]:numpad?'NumPad '+numpad[1]:raw.length===1?upper:raw)||'Не указана'}});
+ const multiple=keys.length>1;
+ const action=s.Action==='Down'?(multiple?'Удерживать клавиши':'Удерживать клавишу'):s.Action==='Up'?(multiple?'Отпустить клавиши':'Отпустить клавишу'):(multiple?'Нажать сочетание':'Нажать клавишу');
+ return{action,keys};
+}
+function stepTitle(s){
+ const title=el('div','step-name');
+ if(s.Kind!=='Key'){title.textContent=describe(s);return title}
+ const presentation=keyPresentation(s);title.append(el('span','',presentation.action));
+ presentation.keys.forEach((key,i)=>{if(i)title.append(el('span','key-join','+'));const cap=el('kbd','step-key',key.label);cap.title='Код клавиши: '+key.raw;title.append(cap)});
+ return title;
+}
+function describe(s){switch(s.Kind){case 'Key':{const p=keyPresentation(s);return p.action+' '+p.keys.map(k=>k.label).join(' + ')}case 'Mouse':return s.Input+' кнопка'+(s.Action==='Tap'?'':s.Action==='Down'?' · удерживать':' · отпустить');case 'DoubleClick':return'Двойной клик · '+s.Input.toLowerCase();case 'Pause':return'Пауза '+s.HoldMs+' мс';case 'Text':return s.Text?s.Text.replace(/\s+/g,' ').slice(0,60):'Ввод текста';case 'Move':return'Курсор → '+s.X+', '+s.Y;case 'Wheel':return'Прокрутка '+s.WheelDelta;default:return'?'}}
+function render(){
+ $('macroName').value=doc.Name;$('repeats').value=doc.RepeatCount;$('forever').checked=doc.RepeatForever;
+ $('saveState').textContent=dirty?'Есть изменения':library.some(x=>x.active)?'Сохранено':'Не сохранён';
+ renderLibrary();renderCanvas();renderRun();
+ if(jsonMode){$('jsonText').value=JSON.stringify(cleanDocument(doc),null,2);highlight()}
+}
+function renderCanvas(){
+ const canvas=$('canvas');canvas.replaceChildren();
+ if(!doc.Nodes.length){const empty=el('div','empty'),symbol=el('div','empty-symbol');symbol.append(icon('flow'));empty.append(symbol,el('h2','','Соберите свой первый сценарий'),el('p','','Выберите окно приложения и добавьте действия. Всё остальное MacroClicker выполнит за вас.'),button('Добавить окно','plus',()=>editNode(-1),'primary'),el('span','hint','Или начните с записи своих действий'));canvas.append(empty);return}
+ const h=el('div','section-heading');h.append(el('h2','','Последовательность'),el('span','',counted(doc.Nodes.length,['узел','узла','узлов'])+' · сверху вниз'));canvas.append(h);
+ doc.Nodes.forEach((n,i)=>{
+  if(i){const c=el('div','connector');c.append(icon('down'),el('span','','Следующее окно'));canvas.append(c)}
+  const card=el('article','node'),head=el('div','node-header'),body=el('div','grow');
+  const title=el('h3','node-title',n.Name);title.title=n.Name;
+  const target=el('div','node-target'+(!n.UseActiveWindow&&!n.WindowTitle?' unbound':''),n.UseActiveWindow?'Текущее активное окно · без переключения':n.WindowTitle||'Окно ещё не выбрано');target.title=n.WindowTitle;
+  body.append(title,target);head.append(el('div','node-number',String(i+1).padStart(2,'0')),body,button('Редактировать',null,()=>editNode(i),'secondary'));
+  const more=small('more','Действия с узлом',()=>menu(more,[['Переименовать','edit',()=>renameNode(i)],['Выше','up',()=>moveNode(i,-1)],['Ниже','down',()=>moveNode(i,1)],['Дублировать','copy',()=>{doc.Nodes.splice(i+1,0,clone(n));changed()}],['Удалить узел…','trash',()=>confirmDelete(i),'danger']]));
+  head.append(more);card.append(head);const preview=el('div','node-preview');
+  if(!n.Steps.length)preview.append(el('span','chip','Только переключение окна'));
+  n.Steps.slice(0,4).forEach(s=>{const chip=el('span','chip');chip.append(icon(kinds[s.Kind]?.[1]),el('span','',describe(s)));preview.append(chip)});
+  if(n.Steps.length>4)preview.append(el('span','chip','Ещё '+(n.Steps.length-4)));
+  card.append(preview);canvas.append(card);
+ });
+ canvas.append(button('Добавить следующее окно','plus',()=>editNode(-1),'add-node'));
+}
+function changed(){markDirty();renderCanvas();renderRun()}
+function moveNode(i,delta){const next=i+delta;if(next<0||next>=doc.Nodes.length)return;const n=doc.Nodes.splice(i,1)[0];doc.Nodes.splice(next,0,n);changed()}
+function confirmDelete(i){if(confirm('Удалить узел «'+doc.Nodes[i].Name+'» и все его действия?')){doc.Nodes.splice(i,1);changed()}}
+function renameNode(i){editNode(i);$('nodeName').focus();$('nodeName').select()}
+function renderRun(){
+ const total=doc.Nodes.reduce((n,x)=>n+x.Steps.length,0);
+ $('runSummary').textContent=doc.Nodes.length?counted(doc.Nodes.length,['узел','узла','узлов'])+' · '+counted(total,['действие','действия','действий']):'Добавьте первое окно';
+ $('hotkeyHint').textContent=settings.SeparateStopHotkey?'Старт · '+startKey+'   Стоп · '+stopKey:'Старт / стоп · '+startKey;
+ $('repeats').disabled=busy||jsonMode||$('forever').checked;$('forever').disabled=busy||jsonMode;
+ $('startButton').replaceChildren(icon(running||recording?'stop':'play'),el('span','',running||recording?'Стоп':'Старт'));
+ $('startButton').disabled=!busy&&doc.Nodes.length===0&&!jsonMode;
+ $('recordButton').replaceChildren(icon(recording?'stop':'record'),el('span','',recording?'Остановить запись':'Записать действия'));
+ $('recordButton').classList.toggle('recording',recording);$('recordButton').disabled=running;
+ for(const id of ['sidebar','header']){const section=document.querySelector('.'+id);section.classList.toggle('locked',busy);section.inert=busy}
+ $('workspace').classList.toggle('locked',busy);$('workspace').inert=busy;$('macroName').disabled=busy||jsonMode;
+ $('visualTab').disabled=busy;$('jsonTab').disabled=busy;
+}
+function switchView(json){
+ try{if(json===jsonMode)return;if(jsonMode){const parsed=readJsonDocument();if(parsed!==doc){doc=parsed;markDirty()}}else getDoc();jsonMode=json;
+ $('canvas').hidden=json;$('jsonView').hidden=!json;$('visualTab').setAttribute('aria-selected',String(!json));$('jsonTab').setAttribute('aria-selected',String(json));render()}
+ catch(e){toast('JSON: '+e.message,true)}
+}
+function highlight(){
+ const source=$('jsonText').value,pre=$('jsonHighlight');pre.replaceChildren();
+ const re=/"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/g;let last=0;
+ for(const m of source.matchAll(re)){pre.append(document.createTextNode(source.slice(last,m.index)));const token=m[0],cls=token.startsWith('"')?(/^\s*:/.test(source.slice(m.index+token.length))?'token-key':'token-string'):/^(true|false|null)$/.test(token)?'token-bool':'token-number';pre.append(el('span',cls,token));last=m.index+token.length}pre.append(document.createTextNode(source.slice(last)+'\n'));pre.scrollTop=$('jsonText').scrollTop;pre.scrollLeft=$('jsonText').scrollLeft;
+}
+function editNode(index){
+ try{if(jsonMode)switchView(false);if(jsonMode)return;nodeIndex=index;nodeDraft=index<0?{Name:'Новое окно',ProcessName:'',WindowTitle:'',UseActiveWindow:true,Steps:[]}:clone(doc.Nodes[index]);
+ $('nodeName').value=nodeDraft.Name;$('nodeHeading').textContent=index<0?'Новое окно':'Редактор узла';renderWindows();renderSteps();show('nodeDialog');post('windows')}
+ catch(e){toast(e.message,true)}
+}
+function renderWindows(){
+ const select=$('nodeWindow');select.replaceChildren();const active=el('option','','Текущее активное окно — без выбора приложения');active.value='active';select.append(active);
+ if(!nodeDraft?.UseActiveWindow){const saved=el('option','',nodeDraft?.WindowTitle?'Сохранённое: '+nodeDraft.WindowTitle:'Выберите окно приложения');saved.value='';select.append(saved)}
+ windows.forEach(w=>{const o=el('option','',w.title+' — '+w.process);o.value=w.id;select.append(o)});
+ if(nodeDraft){const match=windows.find(w=>w.id===nodeDraft.TargetId)||windows.find(w=>w.title===nodeDraft.WindowTitle&&w.process===nodeDraft.ProcessName);select.value=nodeDraft.UseActiveWindow?'active':match?.id||'';post('coordinate',{id:nodeDraft.UseActiveWindow?'':match?.id||''});windowHint()}
+}
+function windowHint(){$('windowModeHint').textContent=nodeDraft?.UseActiveWindow?'Перед стартом будет 5 секунд, чтобы перейти в нужное приложение.':'MacroClicker автоматически активирует это окно. Потеря фокуса останавливает сценарий.'}
+function renderSteps(){
+ $('stepCount').textContent='· '+nodeDraft.Steps.length;const list=$('stepList');list.replaceChildren();
+ if(!nodeDraft.Steps.length){list.append(el('div','step-empty','Добавьте действие, паузу или двойной клик'));return}
+ nodeDraft.Steps.forEach((s,i)=>{const row=el('div','step-row'),glyph=el('div','step-glyph'),body=el('div','grow');glyph.append(icon(kinds[s.Kind]?.[1]));
+ body.append(stepTitle(s));let detail=(s.DelayBeforeMs||0)+' мс до · '+(s.Kind==='DoubleClick'?'интервал пары: авто':(s.HoldMs||50)+' мс удержание / пауза')+' · '+(s.DelayAfterMs||0)+' мс после';if(s.UseCoordinates||s.Kind==='Move')detail+=' · '+(s.CoordinateSpace==='Screen'?'Экран':'Окно')+': '+s.X+', '+s.Y;body.append(el('div','step-detail',detail));
+ const number=el('span','step-number','#'+(i+1));number.setAttribute('aria-label','Шаг '+(i+1));
+ row.append(number,glyph,body,small('edit','Изменить действие '+(i+1),()=>editStep(i)),small('copy','Дублировать действие '+(i+1),()=>{nodeDraft.Steps.splice(i+1,0,clone(s));renderSteps()}));
+ const up=small('up','Действие '+(i+1)+' выше',()=>{[nodeDraft.Steps[i-1],nodeDraft.Steps[i]]=[s,nodeDraft.Steps[i-1]];renderSteps()});up.disabled=i===0;
+ const down=small('down','Действие '+(i+1)+' ниже',()=>{[nodeDraft.Steps[i+1],nodeDraft.Steps[i]]=[s,nodeDraft.Steps[i+1]];renderSteps()});down.disabled=i===nodeDraft.Steps.length-1;
+ row.append(up,down,small('trash','Удалить действие '+(i+1),()=>{nodeDraft.Steps.splice(i,1);renderSteps()}));list.append(row)})
+}
+function field(label,input,parent=$('stepFields'),full=false){const wrap=el('label','field'+(full?' full':''));wrap.append(el('span','',label),input);parent.append(wrap);return input}
+function stepInput(prop,type='text',min=0,max=600000){const input=el('input');input.type=type;input.value=stepDraft[prop]??'';input.id='step-'+prop;if(type==='number'){input.min=min;input.max=max;input.step=1}input.oninput=()=>stepDraft[prop]=type==='number'?Number(input.value):input.value;return input}
+function stepSelect(prop,values){const s=el('select');s.id='step-'+prop;values.forEach(v=>{const o=el('option','',Array.isArray(v)?v[1]:v);o.value=Array.isArray(v)?v[0]:v;s.append(o)});s.value=stepDraft[prop];s.onchange=()=>{stepDraft[prop]=s.value;if(prop==='Action')renderStepFields()};return s}
+function editStep(index,kind='Key'){
+ stepIndex=index;stepDraft=index<0?baseStep(kind):{...baseStep(nodeDraft.Steps[index].Kind),...clone(nodeDraft.Steps[index])};
+ if(kind==='Pause'&&index<0){stepDraft.HoldMs=500;stepDraft.DelayAfterMs=0}
+ $('stepHeading').textContent=index<0?'Добавить действие':'Редактировать действие';$('saveStep').textContent=index<0?'Добавить действие':'Сохранить действие';renderStepFields();show('stepDialog');
+}
+function capturedKey(e){
+ // Physical key codes do not turn Ctrl+C into Ctrl+С in a Russian layout.
+ const code=e.code||'';
+ if(/^Key[A-Z]$/.test(code))return code.slice(3);
+ if(/^Digit[0-9]$/.test(code))return code.slice(5);
+ if(/^Numpad[0-9]$/.test(code))return 'NumPad'+code.slice(6);
+ if(/^F([1-9]|1[0-9]|2[0-4])$/.test(code))return code;
+ const names={ControlLeft:'Ctrl',ControlRight:'Ctrl',ShiftLeft:'Shift',ShiftRight:'Shift',AltLeft:'Alt',AltRight:'Alt',MetaLeft:'Win',MetaRight:'Win',Space:'Space',Enter:'Enter',NumpadEnter:'Enter',Tab:'Tab',Escape:'Escape',Backspace:'Back',Delete:'Delete',Insert:'Insert',Home:'Home',End:'End',PageUp:'PageUp',PageDown:'PageDown',ArrowLeft:'Left',ArrowRight:'Right',ArrowUp:'Up',ArrowDown:'Down',CapsLock:'CapsLock',NumLock:'NumLock',ScrollLock:'Scroll',Pause:'Pause',PrintScreen:'PrintScreen',ContextMenu:'Apps',Minus:'OemMinus',Equal:'Oemplus',BracketLeft:'OemOpenBrackets',BracketRight:'OemCloseBrackets',Backslash:'OemPipe',IntlBackslash:'OemBackslash',Semicolon:'OemSemicolon',Quote:'OemQuotes',Backquote:'Oemtilde',Comma:'Oemcomma',Period:'OemPeriod',Slash:'OemQuestion',NumpadAdd:'Add',NumpadSubtract:'Subtract',NumpadMultiply:'Multiply',NumpadDivide:'Divide',NumpadDecimal:'Decimal'};
+ return names[code]||null;
+}
+function chordCapture(){
+ const held=new Map();let best=[];
+ return {down(e){const key=capturedKey(e);if(!key)return null;held.set(e.code,key);const keys=[...new Set([...(e.ctrlKey?['Ctrl']:[]),...(e.altKey?['Alt']:[]),...(e.shiftKey?['Shift']:[]),...(e.metaKey?['Win']:[]),...held.values()])];if(keys.length>=best.length)best=keys;return best.join('+')},
+ up(e){if(!held.delete(e.code)||held.size)return null;const order=['Ctrl','Alt','Shift','Win'];return best.slice().sort((a,b)=>(order.includes(a)?order.indexOf(a):4)-(order.includes(b)?order.indexOf(b):4)).join('+')}};
+}
+function keyEditor(fields){
+ const input=field('Клавиша или комбинация',stepInput('Input'),fields,true);input.setAttribute('list','supportedKeys');input.placeholder='Например, Ctrl+Shift+S';input.setAttribute('aria-describedby','keyHelp');
+ const list=el('datalist');list.id='supportedKeys';keys.forEach(key=>{const o=el('option');o.value=key;list.append(o)});fields.append(list);
+ const tools=el('div','field full'),row=el('div','window-row');let session=null;
+ const status=el('span','muted');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+ const capture=button('Захватить сочетание','key',()=>{session=session?null:chordCapture();capture.textContent=session?'Отменить захват':'Захватить сочетание';status.textContent=session?'Нажмите сочетание и отпустите все клавиши.':'';capture.setAttribute('aria-pressed',String(!!session));capture.focus()},'secondary');capture.id='captureChord';capture.setAttribute('aria-pressed','false');
+ function stop(){session=null;capture.textContent='Захватить сочетание';capture.setAttribute('aria-pressed','false')}
+ capture.addEventListener('keydown',e=>{if(!session)return;e.preventDefault();e.stopPropagation();const value=session.down(e);if(!value)stop();status.textContent=value?'Захват: '+value:'Захват отменён: эту клавишу введите вручную в поле выше.'});
+ capture.addEventListener('keyup',e=>{if(!session)return;e.preventDefault();e.stopPropagation();const value=session.up(e);if(value){stepDraft.Input=value;input.value=value;stop();status.textContent='Введено: '+value}});
+ capture.addEventListener('blur',()=>{if(session){stop();status.textContent='Захват отменён. Поле не изменено.'}});
+ row.append(capture,status);tools.append(row);
+ const help=el('span','','Введите названия через +: Ctrl+C, Ctrl+Shift+S. Для смены языка — Alt+Shift или Win+Space (по настройке Windows). Список выше выбирает одну клавишу; сочетание можно дописать вручную.');help.id='keyHelp';tools.append(help);
+ tools.append(el('span','','Системные сочетания могут перехватываться Windows — их вводите текстом. Для символа «+» используйте Oemplus или Add. Для длинного текста выберите действие «Текст».'));fields.append(tools);
+}
+function renderStepFields(){
+ const types=$('stepTypes');types.replaceChildren();Object.entries(kinds).forEach(([kind,[label,glyph]])=>{const b=button(label,glyph,()=>{stepDraft.Kind=kind;if(['Mouse','DoubleClick'].includes(kind))stepDraft.Input='Левая';if(kind==='DoubleClick')stepDraft.Action='Tap';renderStepFields()},kind===stepDraft.Kind?'selected':'');b.setAttribute('aria-pressed',String(kind===stepDraft.Kind));types.append(b)});
+ const fields=$('stepFields');fields.replaceChildren();$('stepTiming').replaceChildren();$('stepNote').hidden=true;
+ const k=stepDraft.Kind;
+ if(k==='Key')keyEditor(fields);
+ if(['Mouse','DoubleClick'].includes(k))field('Кнопка мыши',stepSelect('Input',['Левая','Правая','Средняя','Боковая 1','Боковая 2']),fields,true);
+ if(['Key','Mouse'].includes(k))field('Режим',stepSelect('Action',[['Tap','Нажать и отпустить'],['Down','Удерживать до отдельного отпускания'],['Up','Отпустить']]),fields,true);
+ if(['Mouse','DoubleClick','Wheel'].includes(k)){const label=el('label','check field full'),check=el('input');check.type='checkbox';check.checked=stepDraft.UseCoordinates;check.onchange=()=>{stepDraft.UseCoordinates=check.checked;renderStepFields()};label.append(check,document.createTextNode('Переместить курсор перед действием'));fields.append(label)}
+ if(k==='Move'||(['Mouse','DoubleClick','Wheel'].includes(k)&&stepDraft.UseCoordinates)){field('Координаты относительно',stepSelect('CoordinateSpace',[['Window','Окна приложения'],['Screen','Всего экрана']]),fields,true);field('X',stepInput('X','number',-100000,100000));field('Y',stepInput('Y','number',-100000,100000));field('Пауза после перемещения, мс',stepInput('MoveDelayMs','number'),fields,true)}
+ if(k==='Text'){const text=el('textarea');text.rows=6;text.maxLength=1000000;text.value=stepDraft.Text;text.id='step-Text';text.oninput=()=>stepDraft.Text=text.value;field('Текст для ввода',text,fields,true);field('Интервал между символами, мс',stepInput('CharacterDelayMs','number',0,10000),fields,true)}
+ if(k==='Wheel'){field('Прокрутка (120 = одно деление)',stepInput('WheelDelta','number',-12000,12000));const check=el('input');check.type='checkbox';check.checked=stepDraft.HorizontalWheel;check.onchange=()=>stepDraft.HorizontalWheel=check.checked;field('Горизонтальное колесо',check)}
+ if(k==='DoubleClick'){$('stepNote').textContent='Два клика — одно действие. Короткие интервалы внутри пары рассчитываются по настройке Windows. Системная пауза не разрывает двойной клик.';$('stepNote').hidden=false}
+ field('Задержка до, мс',stepInput('DelayBeforeMs','number'),$('stepTiming'));
+ if(k==='Pause'||(['Key','Mouse'].includes(k)&&stepDraft.Action==='Tap'))field(k==='Pause'?'Длительность паузы, мс':'Удержание, мс',stepInput('HoldMs','number',1),$('stepTiming'));
+ if(k!=='Pause')field('Пауза после, мс',stepInput('DelayAfterMs','number'),$('stepTiming'));
+}
+let initialStateRendered=false;
+function receive(data){
+ switch(data.type){
+ case 'state':if(data.document){doc=data.document;dirty=data.dirty}library=data.library;settings=data.settings;keys=data.keys;startKey=data.startHotkey;stopKey=data.stopHotkey;doubleMs=data.doubleClickMs;setTheme(settings.DarkTheme);render();if(!initialStateRendered){initialStateRendered=true;post('rendered')}break;
+ case 'runtime':busy=data.busy;running=data.running;recording=data.recording;$('status').textContent=data.status;$('coordinates').textContent=data.coordinates;$('nodeCoordinates').textContent=data.coordinates;renderRun();break;
+ case 'windows':windows=data.windows;if(nodeDraft)renderWindows();break;
+ case 'error':toast(data.message,true);break;
+ case 'help':$('helpText').textContent=data.text;break;
+ case 'logs':$('logsText').textContent=data.text;break;
+ case 'logsCopied':toast('Журнал скопирован');break;
+ case 'settingsSaved':close('settingsDialog');toast('Настройки сохранены');break;
+ }
+}
+if(native)window.chrome.webview.addEventListener('message',e=>receive(e.data));
+let previewLibrary=[];
+function preview(name,data){
+ const state=()=>receive({type:'state',document:doc,library:previewLibrary,settings,keys,startHotkey:startKey,stopHotkey:stopKey,doubleClickMs:500,dirty});
+ if(name==='ready'){state();$('previewBadge').hidden=false}
+ if(name==='windows')receive({type:'windows',windows:[{id:'preview-1',title:'Тестовое приложение',process:'test-app'},{id:'preview-2',title:'Заметки',process:'notepad'}]});
+ if(name==='new'){if(dirty&&!confirm('Отбросить несохранённые изменения предпросмотра?'))return;doc=newDoc();dirty=false;state()}
+ if(name==='save'){doc=clone(data.document);dirty=false;previewLibrary=[{id:'preview',name:doc.Name,nodes:doc.Nodes.length,active:true}];state();toast('Сохранено только в памяти предпросмотра')}
+ if(name==='open')toast('В предпросмотре нет файловой библиотеки.');
+ if(name==='apply'){doc=clone(data.document);dirty=true;state()}
+ if(name==='start'||name==='record')toast('Предпросмотр интерфейса: ввод Windows здесь не выполняется.');
+ if(name==='settings'){doc=clone(data.document);settings={DarkTheme:data.dark,SeparateStopHotkey:data.separate};startKey=data.start;stopKey=data.stop;state();receive({type:'settingsSaved'})}
+ if(name==='help')receive({type:'help',text:'MacroClicker\n\n1. Добавьте окно приложения.\n2. В редакторе узла создайте действия.\n3. Сохраните макрос и нажмите «Старт».\n\nВ Windows здесь доступна полная встроенная справка.'});
+ if(name==='logs')receive({type:'logs',text:'Предпросмотр интерфейса\n\n[INFO] Страница загружена.\nЖурналы Windows здесь недоступны. В приложении будут показаны реальные записи текущего запуска.'});
+ if(name==='copyLogs'||name==='logsFolder')toast('Копирование и папка журналов доступны в Windows-приложении.');
+ if(name==='import'||name==='export')toast('Файловые диалоги доступны в Windows-приложении.');
+}
+$('newMacro').onclick=()=>command('new');$('search').oninput=renderLibrary;$('importButton').onclick=()=>command('import');$('saveButton').onclick=()=>command('save',{},true);
+$('macroMore').onclick=()=>menu($('macroMore'),[['Сохранить копию','copy',()=>command('save',{copy:true},true)],['Экспорт JSON','export',()=>command('export',{},true)]]);
+$('macroName').oninput=()=>{doc.Name=$('macroName').value;markDirty()};$('repeats').oninput=()=>{doc.RepeatCount=Number($('repeats').value);markDirty()};$('forever').onchange=()=>{doc.RepeatForever=$('forever').checked;markDirty();renderRun()};
+$('visualTab').onclick=()=>switchView(false);$('jsonTab').onclick=()=>switchView(true);
+$('jsonText').oninput=()=>{highlight();markJsonEdit()};$('jsonText').onscroll=highlight;
+$('jsonText').onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();const t=e.target;t.setRangeText('  ',t.selectionStart,t.selectionEnd,'end');highlight();markJsonEdit()}};
+$('formatJson').onclick=()=>{try{$('jsonText').value=JSON.stringify(JSON.parse($('jsonText').value),null,2);highlight();markJsonEdit()}catch(e){toast('JSON: '+e.message,true)}};
+$('applyJson').onclick=()=>command('apply',{},true);
+$('startButton').onclick=()=>command(busy?'stop':'start',{},!busy);$('recordButton').onclick=()=>command(recording?'stop':'record',{},!recording);
+$('refreshWindows').onclick=()=>post('windows');
+$('nodeName').oninput=()=>{if(nodeDraft)nodeDraft.Name=$('nodeName').value};
+$('nodeWindow').onchange=()=>{if($('nodeWindow').value==='active'){nodeDraft.UseActiveWindow=true;post('coordinate',{id:''});windowHint();return}nodeDraft.UseActiveWindow=false;const target=windows.find(w=>w.id===$('nodeWindow').value);if(target){nodeDraft.TargetId=target.id;nodeDraft.ProcessName=target.process;nodeDraft.WindowTitle=target.title;if($('nodeName').value==='Новое окно'){$('nodeName').value=target.title;nodeDraft.Name=target.title}post('coordinate',{id:target.id})}windowHint()};
+$('saveNode').onclick=()=>{const name=$('nodeName').value.trim();if(!name){toast('Укажите название узла.',true);$('nodeName').focus();return}nodeDraft.Name=name;if(nodeIndex<0)doc.Nodes.push(nodeDraft);else doc.Nodes[nodeIndex]=nodeDraft;close('nodeDialog');changed()};
+$('addStep').onclick=()=>editStep(-1);$('quickPause').onclick=()=>editStep(-1,'Pause');$('quickDouble').onclick=()=>editStep(-1,'DoubleClick');
+$('saveStep').onclick=()=>{try{
+ const invalid=$('stepDialog').querySelector('input:invalid');if(invalid){invalid.reportValidity();return}
+ if(['Key','Mouse','DoubleClick'].includes(stepDraft.Kind)&&!stepDraft.Input.trim())throw Error('Укажите клавишу или кнопку.');
+ if(stepDraft.Kind==='DoubleClick')stepDraft.Action='Tap';validate({...newDoc(),Nodes:[{...nodeDraft,Steps:[stepDraft]}]});
+ if(stepIndex<0)nodeDraft.Steps.push(stepDraft);else nodeDraft.Steps[stepIndex]=stepDraft;close('stepDialog');renderSteps()
+ }catch(e){toast(e.message,true)}};
+function hotkeyMode(){$('stopHotkeyField').hidden=!$('separateHotkeys').checked;$('startHotkeyLabel').textContent=$('separateHotkeys').checked?'Старт':'Старт / стоп'}
+$('settingsButton').onclick=()=>{try{getDoc();$('darkTheme').checked=settings.DarkTheme;$('safePauses').checked=doc.SafeMousePauses;$('separateHotkeys').checked=settings.SeparateStopHotkey;$('startHotkey').value=startKey;$('stopHotkey').value=stopKey;hotkeyMode();$('systemPauseInfo').textContent='Разделяет обычные клики: '+(doubleMs+1)+' мс по настройке Windows. Внутри двойного клика не применяется.';show('settingsDialog')}catch(e){toast(e.message,true)}};
+$('separateHotkeys').onchange=hotkeyMode;$('darkTheme').onchange=()=>setTheme($('darkTheme').checked);
+$('saveSettings').onclick=()=>{try{const value=getDoc();value.SafeMousePauses=$('safePauses').checked;doc=value;markDirty();post('settings',{document:value,dark:$('darkTheme').checked,separate:$('separateHotkeys').checked,start:$('startHotkey').value,stop:$('stopHotkey').value})}catch(e){toast(e.message,true)}};
+$('helpButton').onclick=()=>{show('helpDialog');post('help',{topic:$('helpTopic').value})};$('helpTopic').onchange=()=>post('help',{topic:$('helpTopic').value});
+$('logsButton').onclick=()=>{show('logsDialog');post('logs')};$('refreshLogs').onclick=()=>post('logs');$('copyLogs').onclick=()=>post('copyLogs');$('logsFolder').onclick=()=>post('logsFolder');
+$('saveButton').setAttribute('aria-label','Сохранить макрос');
+$('recordButton').setAttribute('aria-label','Записать или остановить запись действий');
+post('ready');
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>MacroClicker — курсор и последовательность действий</title>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#202322"/>
+  <path d="M181 76v104" fill="none" stroke="#68897D" stroke-width="8" stroke-linecap="round"/>
+  <rect x="168" y="61" width="26" height="26" rx="7" fill="#9BE3C9"/>
+  <rect x="168" y="112" width="26" height="26" rx="7" fill="#9BE3C9"/>
+  <rect x="168" y="163" width="26" height="26" rx="7" fill="#9BE3C9"/>
+  <path d="M63 54v121l33-32 58-9Z" fill="#F5F6F4" stroke="#202322" stroke-width="5" stroke-linejoin="round"/>
+</svg>

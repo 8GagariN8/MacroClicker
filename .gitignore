@@ -1,0 +1,31 @@
+# Generated .NET / IDE files
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.pdb
+
+# Published application and third-party runtime installers belong outside Git
+/publish/
+/ready-for-flash/
+/Runtime/*.exe
+
+# Local state, credentials, diagnostics, and personal macro library
+.DS_Store
+._*
+.env
+.env.*
+*.log
+*.dmp
+**/Logs/
+**/WebView2/
+**/Macros/
+**/Library/
+settings.json
+appsettings.local.json
+*.pem
+*.key
+
+# The checked-in example-macro.json is an intentional sample.
