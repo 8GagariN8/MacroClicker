@@ -22,6 +22,8 @@ internal sealed class WebMainForm : Form
     private string _startupStage = "Создание окна";
     private MacroDocument _document = new();
     private readonly Dictionary<string, string> _library = [];
+    private readonly HashSet<string> _trashIds = [];
+    private DateTimeOffset _nextTrashCleanup = DateTimeOffset.MinValue;
     private readonly Dictionary<string, WindowTarget> _windows = [];
     private string? _file;
     private string _status = "Готово к запуску";
@@ -225,6 +227,60 @@ internal sealed class WebMainForm : Form
         }
         finally { _dialog = false; }
     }
+    private void DeleteMacro(string id)
+    {
+        if (!_library.TryGetValue(id, out var path))
+            throw new InvalidDataException("Макрос не найден в библиотеке. Откройте список заново.");
+        var active = path == _file;
+        // The themed web dialog sends this command only after explicit confirmation.
+        MacroStorage.Archive(MacroStorage.LibraryPath, id);
+        _library.Remove(id);
+        _status = "Макрос помещён в корзину";
+        if (active) { _document = new(); _file = null; _dirty = false; State(); }
+        // Do not re-render another open document: it may contain incomplete JSON edits.
+        Send(new { type = "libraryDeleted", id });
+    }
+    private void CleanupTrash()
+    {
+        _nextTrashCleanup = DateTimeOffset.UtcNow.AddHours(1);
+        try
+        {
+            var count = MacroTrash.PurgeExpired(MacroStorage.LibraryPath, DateTimeOffset.UtcNow,
+                error => AppLog.Current.Write("WARN", "Could not expire trash entry", error));
+            if (count > 0) AppLog.Current.Write("INFO", $"Expired trash entries: {count}");
+        }
+        catch (Exception error) { AppLog.Current.Write("WARN", "Could not clean macro trash", error); }
+    }
+    private void SendTrash()
+    {
+        var items = MacroTrash.List(MacroStorage.LibraryPath);
+        _trashIds.Clear(); foreach (var item in items) _trashIds.Add(item.Id);
+        Send(new { type = "trash", items });
+    }
+    private void RestoreMacro(string id)
+    {
+        if (!_trashIds.Contains(id)) throw new InvalidDataException("Откройте корзину заново.");
+        var path = MacroTrash.Restore(MacroStorage.LibraryPath, id);
+        var doc = MacroStorage.Read(path); var restoredId = Path.GetFileName(path);
+        _library[restoredId] = path;
+        Send(new { type = "libraryRestored", item = new { id = restoredId, name = doc.Name, nodes = doc.Nodes.Count, active = false } });
+        SendTrash();
+    }
+    private void ClearTrash()
+    {
+        var ids = MacroTrash.List(MacroStorage.LibraryPath).Select(x => x.Id).ToArray();
+        if (ids.Length == 0) { SendTrash(); return; }
+        var wasDialog = _dialog; _dialog = true;
+        try
+        {
+            if (MessageBox.Show(this, $"Навсегда удалить все макросы из корзины ({ids.Length})?\nВосстановить их будет невозможно. Макросы из основного списка останутся.",
+                "Очистить корзину", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
+            try { foreach (var id in ids) MacroTrash.DeletePermanently(MacroStorage.LibraryPath, id); }
+            finally { SendTrash(); } // Refresh even after a partial failure.
+            Send(new { type = "trashCleared" });
+        }
+        finally { _dialog = wasDialog; }
+    }
     private async void Receive(string json)
     {
         try
@@ -266,6 +322,10 @@ internal sealed class WebMainForm : Form
                 switch (command)
                 {
                     case "save": Save(data.TryGetProperty("copy", out var copy) && copy.GetBoolean()); State(); break;
+                    case "deleteMacro": DeleteMacro(data.GetProperty("id").GetString() ?? ""); break;
+                    case "trash": CleanupTrash(); SendTrash(); break;
+                    case "restoreMacro": RestoreMacro(data.GetProperty("id").GetString() ?? ""); break;
+                    case "clearTrash": ClearTrash(); break;
                     case "apply": _dirty = true; _status = "JSON применён"; State(); break;
                     case "new":
                         if (await CanReplaceAsync()) { _document = new(); _file = null; _dirty = false; State(); } break;
@@ -416,6 +476,7 @@ internal sealed class WebMainForm : Form
     }
     private void Tick()
     {
+        if (_ready && !Busy && !_dialog && !_command && DateTimeOffset.UtcNow >= _nextTrashCleanup) CleanupTrash();
         if (!_ready) return;
         if (_recorder?.Full == true) { FinishRecording(); return; }
         var status = _recorder is not null ? $"Идёт запись · событий: {_recorder.Count} · F10 — остановить" : _status;

@@ -10,6 +10,7 @@
 # Published application and third-party runtime installers belong outside Git
 /publish/
 /ready-for-flash/
+/release-package/
 /Runtime/*.exe
 
 # Local state, credentials, diagnostics, and personal macro library

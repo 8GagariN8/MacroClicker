@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../MacroModels.cs" Link="MacroModels.cs" />
+    <Compile Include="../MacroTrash.cs" Link="MacroTrash.cs" />
     <Compile Include="../MacroRunner.cs" Link="MacroRunner.cs" />
     <Compile Include="../WebContentPolicy.cs" Link="WebContentPolicy.cs" />
     <Compile Include="../DiagnosticLog.cs" Link="DiagnosticLog.cs" />

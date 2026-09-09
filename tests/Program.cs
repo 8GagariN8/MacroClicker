@@ -22,6 +22,97 @@ static async Task MustFail<T>(Func<Task> action) where T : Exception
 
 var tests = new (string Name, Func<Task> Run)[]
 {
+    ("Корзина: срок ровно 30 дней считается от удаления, не от изменения JSON", () =>
+    {
+        var directory = Directory.CreateTempSubdirectory("macro-trash-check-");
+        try
+        {
+            var deleted = new DateTimeOffset(2026, 9, 9, 12, 0, 0, TimeSpan.Zero);
+            var source = Path.Combine(directory.FullName, "old.json");
+            MacroStorage.Write(source, new() { Name = "Старый файл" });
+            File.SetLastWriteTimeUtc(source, deleted.AddYears(-2).UtcDateTime);
+            var archived = MacroStorage.Archive(directory.FullName, "old.json", deleted);
+            var item = MacroTrash.List(directory.FullName).Single();
+            Assert(item.DeletedAt == deleted && item.ExpiresAt == deleted.AddDays(30), "Wrong retention timestamp");
+            Assert(MacroTrash.PurgeExpired(directory.FullName, deleted.AddDays(30).AddTicks(-1)) == 0 && File.Exists(archived), "Premature expiry");
+            Assert(MacroTrash.PurgeExpired(directory.FullName, deleted.AddDays(30)) == 1 && !File.Exists(archived), "Boundary expiry failed");
+        }
+        finally { Directory.Delete(directory.FullName, true); }
+        return Task.CompletedTask;
+    }),
+    ("Корзина: восстановление не перезаписывает одноимённые макросы", () =>
+    {
+        var directory = Directory.CreateTempSubdirectory("macro-trash-check-");
+        try
+        {
+            var first = Path.Combine(directory.FullName, "one.json");
+            MacroStorage.Write(first, new() { Name = "Имя" }); var content = File.ReadAllText(first);
+            var archived = MacroStorage.Archive(directory.FullName, "one.json");
+            MacroStorage.Write(first, new() { Name = "Имя" });
+            var restored = MacroTrash.Restore(directory.FullName, Path.GetFileName(archived));
+            Assert(restored != first && File.Exists(first) && File.ReadAllText(restored) == content, "Restore replaced another macro");
+            Assert(MacroTrash.List(directory.FullName).Count == 0, "Restored macro remains in trash");
+        }
+        finally { Directory.Delete(directory.FullName, true); }
+        return Task.CompletedTask;
+    }),
+    ("Корзина: очистка ограничена JSON корзины, неизвестная дата не удаляется автоматически", async () =>
+    {
+        var directory = Directory.CreateTempSubdirectory("macro-trash-check-");
+        try
+        {
+            MacroStorage.Write(Path.Combine(directory.FullName, "keep.json"), new());
+            Directory.CreateDirectory(Path.Combine(directory.FullName, "Deleted"));
+            var unknown = Path.Combine(directory.FullName, "Deleted", "legacy.json");
+            File.WriteAllText(unknown, "invalid JSON");
+            var note = Path.Combine(directory.FullName, "Deleted", "keep.txt"); File.WriteAllText(note, "note");
+            Assert(MacroTrash.List(directory.FullName).Single().ExpiresAt is null, "Guessed deletion date");
+            Assert(MacroTrash.PurgeExpired(directory.FullName, DateTimeOffset.UtcNow.AddYears(5)) == 0, "Unknown age removed automatically");
+            await MustFail<System.Text.Json.JsonException>(() => { MacroTrash.Restore(directory.FullName, "legacy.json"); return Task.CompletedTask; });
+            foreach (var id in new[] { "../keep.json", "..\\keep.json", "C:keep.json", "keep.txt", "" })
+                await MustFail<InvalidDataException>(() => { MacroTrash.DeletePermanently(directory.FullName, id); return Task.CompletedTask; });
+            MacroTrash.DeletePermanently(directory.FullName, "legacy.json");
+            Assert(!File.Exists(unknown) && File.Exists(note) && File.Exists(Path.Combine(directory.FullName, "keep.json")), "Clear escaped trash boundary");
+        }
+        finally { Directory.Delete(directory.FullName, true); }
+    }),
+    ("Библиотека: удаление сохраняет JSON и не затрагивает соседние макросы", () =>
+    {
+        var directory = Directory.CreateTempSubdirectory("macro-delete-check-");
+        try
+        {
+            var first = Path.Combine(directory.FullName, "first.json");
+            var other = Path.Combine(directory.FullName, "other.json");
+            MacroStorage.Write(first, new() { Name = "Одинаковое имя" });
+            MacroStorage.Write(other, new() { Name = "Одинаковое имя" });
+            var content = File.ReadAllText(first);
+            var archived = MacroStorage.Archive(directory.FullName, "first.json");
+            Assert(!File.Exists(first) && File.Exists(other), "Wrong macro removed");
+            Assert(File.ReadAllText(archived) == content, "Recovery copy changed");
+            Assert(Directory.GetFiles(directory.FullName, "*.json").Length == 1, "Archive appears in library");
+            MacroStorage.Write(first, new() { Name = "Новый" });
+            var second = MacroStorage.Archive(directory.FullName, "first.json");
+            Assert(second != archived && File.ReadAllText(archived) == content, "Previous recovery copy overwritten");
+        }
+        finally { Directory.Delete(directory.FullName, true); }
+        return Task.CompletedTask;
+    }),
+    ("Библиотека: ошибочные пути и отсутствующий файл не удаляют данные", async () =>
+    {
+        var directory = Directory.CreateTempSubdirectory("macro-delete-check-");
+        try
+        {
+            var source = Path.Combine(directory.FullName, "keep.json");
+            MacroStorage.Write(source, new());
+            foreach (var id in new[] { "../keep.json", "..\\keep.json", source, "C:keep.json", "keep.txt", "" })
+                await MustFail<InvalidDataException>(() => { MacroStorage.Archive(directory.FullName, id); return Task.CompletedTask; });
+            await MustFail<FileNotFoundException>(() => { MacroStorage.Archive(directory.FullName, "missing.json"); return Task.CompletedTask; });
+            File.WriteAllText(Path.Combine(directory.FullName, "Deleted"), "blocked directory");
+            await MustFail<IOException>(() => { MacroStorage.Archive(directory.FullName, "keep.json"); return Task.CompletedTask; });
+            Assert(File.Exists(source), "Failure removed source");
+        }
+        finally { Directory.Delete(directory.FullName, true); }
+    }),
     ("Журнал: сохраняет обычные события и ошибки с деталями", () =>
     {
         var directory = Directory.CreateTempSubdirectory("macro-log-check-");

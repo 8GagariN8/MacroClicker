@@ -84,6 +84,25 @@ internal static class MacroStorage
     };
     public static string LibraryPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MacroClicker", "Macros");
+    public static string Archive(string libraryPath, string id, DateTimeOffset? deletedAt = null)
+    {
+        // Accept a library filename only, never a path supplied by the web interface.
+        if (string.IsNullOrWhiteSpace(id) || id.IndexOfAny(['/', '\\', ':']) >= 0 ||
+            Path.GetFileName(id) != id || !id.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Некорректный идентификатор макроса.");
+        var source = Path.Combine(libraryPath, id);
+        if (!File.Exists(source)) throw new FileNotFoundException("Макрос уже удалён или перемещён.");
+        if ((File.GetAttributes(source) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Нельзя удалить макрос по символической ссылке.");
+        var archive = Path.Combine(libraryPath, "Deleted");
+        Directory.CreateDirectory(archive);
+        if ((File.GetAttributes(archive) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Папка удалённых макросов не должна быть ссылкой.");
+        var stamp = (deletedAt ?? DateTimeOffset.UtcNow).UtcDateTime.ToString(MacroTrash.TimestampFormat, System.Globalization.CultureInfo.InvariantCulture);
+        var destination = Path.Combine(archive, stamp + "_" + Guid.NewGuid() + ".json");
+        File.Move(source, destination); // No overwrite: an error must leave the editor unchanged.
+        return destination;
+    }
     public static MacroDocument Read(string path)
     {
         var doc = JsonSerializer.Deserialize<MacroDocument>(File.ReadAllText(path), Options)

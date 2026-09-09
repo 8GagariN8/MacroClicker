@@ -9,7 +9,7 @@
     <AssemblyName>MacroClicker</AssemblyName>
     <Product>MacroClicker</Product>
     <ApplicationIcon>Assets/MacroClicker.ico</ApplicationIcon>
-    <Version>2.1.4</Version>
+    <Version>2.1.5</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <RootNamespace>MacroClicker</RootNamespace>
   </PropertyGroup>
