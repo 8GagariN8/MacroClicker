@@ -8,10 +8,8 @@
 *.pdb
 
 # Published application and third-party runtime installers belong outside Git
-/publish/
-/ready-for-flash/
-/release-package/
-/Runtime/*.exe
+/artifacts/
+/packaging/WebView2/*.exe
 
 # Local state, credentials, diagnostics, and personal macro library
 .DS_Store
@@ -22,6 +20,7 @@
 *.dmp
 **/Logs/
 **/WebView2/
+!/packaging/WebView2/
 **/Macros/
 **/Library/
 settings.json
@@ -29,4 +28,4 @@ appsettings.local.json
 *.pem
 *.key
 
-# The checked-in example-macro.json is an intentional sample.
+# Checked-in docs/examples/*.json files are intentional samples.

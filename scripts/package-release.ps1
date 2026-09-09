@@ -2,12 +2,12 @@ param([Parameter(Mandatory = $true)][string]$Version)
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid version.' }
 $root = Split-Path $PSScriptRoot -Parent
-$exe = Join-Path $root 'publish/MacroClicker.exe'
+$exe = Join-Path $root 'artifacts/publish/MacroClicker.exe'
 if (!(Test-Path $exe) -or (Get-Item $exe).Length -lt 1MB) { throw 'Published executable is missing or empty.' }
 $actual = (Get-Item $exe).VersionInfo.ProductVersion.Split('+')[0]
 if ($actual -ne $Version) { throw "Executable version $actual does not match $Version." }
-$package = Join-Path $root 'release-package'
-if (Test-Path $package) { throw 'Use a clean checkout: release-package already exists.' }
+$package = Join-Path $root 'artifacts/release'
+if (Test-Path $package) { throw 'Use a clean checkout: artifacts/release already exists.' }
 New-Item -ItemType Directory $package | Out-Null
 Copy-Item $exe (Join-Path $package 'MacroClicker.exe')
 $instructions = @"

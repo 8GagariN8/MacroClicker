@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>MacroClicker</AssemblyName>
+    <Product>MacroClicker</Product>
+    <ApplicationIcon>Assets/MacroClicker.ico</ApplicationIcon>
+    <Version>2.1.6</Version>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <RootNamespace>MacroClicker</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <EmbeddedResource Include="Web/index.html" LogicalName="MacroClicker.Web.index.html" />
+    <EmbeddedResource Include="Assets/MacroClicker.ico" LogicalName="MacroClicker.AppIcon" />
+    <EmbeddedResource Include="../../docs/user/QUICKSTART.txt" LogicalName="MacroClicker.Help.QuickStart" />
+    <EmbeddedResource Include="../../docs/user/MANUAL.md" LogicalName="MacroClicker.Help.Manual" />
+    <EmbeddedResource Include="../../docs/testing/WINDOWS-CHECKLIST.md" LogicalName="MacroClicker.Help.WindowsChecks" />
+    <EmbeddedResource Include="../../docs/testing/TEST-RESULTS.md" LogicalName="MacroClicker.Help.TestResults" />
+    <EmbeddedResource Include="../../docs/archive/NUGET-DIAGNOSTICS.md" LogicalName="MacroClicker.Help.NuGet" />
+  </ItemGroup>
+  <!-- The WebView2 package also adds WPF references. This host is WinForms only. -->
+  <Target Name="RemoveUnusedWebView2WpfReference" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+</Project>

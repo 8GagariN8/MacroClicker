@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{1030E623-4644-4478-BC6A-5011E8FA4C3B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MacroClicker", "src\MacroClicker\MacroClicker.csproj", "{93305F40-0B46-4E69-BF5F-E87F4A15B058}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F31CE2A4-79C0-4843-86B9-45249B17FAC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EngineChecks", "tests\EngineChecks\EngineChecks.csproj", "{B0CA3184-2C2F-49EB-93CC-BD5204B45633}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{93305F40-0B46-4E69-BF5F-E87F4A15B058}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93305F40-0B46-4E69-BF5F-E87F4A15B058}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93305F40-0B46-4E69-BF5F-E87F4A15B058}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93305F40-0B46-4E69-BF5F-E87F4A15B058}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0CA3184-2C2F-49EB-93CC-BD5204B45633}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0CA3184-2C2F-49EB-93CC-BD5204B45633}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0CA3184-2C2F-49EB-93CC-BD5204B45633}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0CA3184-2C2F-49EB-93CC-BD5204B45633}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{93305F40-0B46-4E69-BF5F-E87F4A15B058} = {1030E623-4644-4478-BC6A-5011E8FA4C3B}
+		{B0CA3184-2C2F-49EB-93CC-BD5204B45633} = {F31CE2A4-79C0-4843-86B9-45249B17FAC3}
+	EndGlobalSection
+EndGlobal

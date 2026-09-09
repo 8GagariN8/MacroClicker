@@ -1,0 +1,79 @@
+{
+  "Version": 3,
+  "Name": "1–5 и Enter каждые 6 повторений",
+  "RepeatCount": 12,
+  "RepeatForever": false,
+  "SafeMousePauses": true,
+  "Nodes": [
+    {
+      "Name": "Ввести 1–5",
+      "UseActiveWindow": true,
+      "ProcessName": "",
+      "WindowTitle": "",
+      "TransitionDelayMs": 0,
+      "PeriodicActions": [
+        {
+          "Enabled": true,
+          "Trigger": "Cycles",
+          "EveryCycles": 6,
+          "EveryMs": 30000,
+          "Node": {
+            "Name": "Подтвердить · Enter",
+            "UseActiveWindow": true,
+            "ProcessName": "",
+            "WindowTitle": "",
+            "TransitionDelayMs": 0,
+            "PeriodicActions": [],
+            "Steps": [
+              {
+                "Kind": "Key",
+                "Input": "Enter",
+                "Action": "Tap",
+                "HoldMs": 50,
+                "DelayAfterMs": 100
+              }
+            ]
+          }
+        }
+      ],
+      "Steps": [
+        {
+          "Kind": "Key",
+          "Input": "1",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "2",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "3",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "4",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "5",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        }
+      ]
+    }
+  ],
+  "Steps": []
+}

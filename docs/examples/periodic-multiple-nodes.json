@@ -1,0 +1,160 @@
+{
+  "Version": 3,
+  "Name": "Сценарий с условиями",
+  "RepeatCount": 12,
+  "RepeatForever": false,
+  "SafeMousePauses": true,
+  "Nodes": [
+    {
+      "Name": "Ввести 1–5",
+      "UseActiveWindow": true,
+      "ProcessName": "",
+      "WindowTitle": "",
+      "TransitionDelayMs": 2000,
+      "PeriodicActions": [
+        {
+          "Enabled": true,
+          "Trigger": "Cycles",
+          "EveryCycles": 6,
+          "EveryMs": 30000,
+          "Node": {
+            "Name": "Подтвердить · Enter",
+            "UseActiveWindow": true,
+            "ProcessName": "",
+            "WindowTitle": "",
+            "TransitionDelayMs": 0,
+            "PeriodicActions": [],
+            "Steps": [
+              {
+                "Kind": "Key",
+                "Input": "Enter",
+                "Action": "Tap",
+                "HoldMs": 50,
+                "DelayAfterMs": 100
+              }
+            ]
+          }
+        }
+      ],
+      "Steps": [
+        {
+          "Kind": "Key",
+          "Input": "1",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "2",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "3",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "4",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        },
+        {
+          "Kind": "Key",
+          "Input": "5",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        }
+      ]
+    },
+    {
+      "Name": "Обновить данные",
+      "UseActiveWindow": true,
+      "ProcessName": "",
+      "WindowTitle": "",
+      "TransitionDelayMs": 500,
+      "PeriodicActions": [
+        {
+          "Enabled": true,
+          "Trigger": "Time",
+          "EveryCycles": 6,
+          "EveryMs": 30000,
+          "Node": {
+            "Name": "Проверить состояние · Tab",
+            "UseActiveWindow": true,
+            "ProcessName": "",
+            "WindowTitle": "",
+            "TransitionDelayMs": 0,
+            "PeriodicActions": [],
+            "Steps": [
+              {
+                "Kind": "Key",
+                "Input": "Tab",
+                "Action": "Tap",
+                "HoldMs": 50,
+                "DelayAfterMs": 100
+              }
+            ]
+          }
+        },
+        {
+          "Enabled": true,
+          "Trigger": "Cycles",
+          "EveryCycles": 3,
+          "EveryMs": 30000,
+          "Node": {
+            "Name": "Сохранить · Ctrl+S",
+            "UseActiveWindow": true,
+            "ProcessName": "",
+            "WindowTitle": "",
+            "TransitionDelayMs": 0,
+            "PeriodicActions": [],
+            "Steps": [
+              {
+                "Kind": "Key",
+                "Input": "Ctrl+S",
+                "Action": "Tap",
+                "HoldMs": 50,
+                "DelayAfterMs": 100
+              }
+            ]
+          }
+        }
+      ],
+      "Steps": [
+        {
+          "Kind": "Key",
+          "Input": "F5",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        }
+      ]
+    },
+    {
+      "Name": "Перейти дальше",
+      "UseActiveWindow": true,
+      "ProcessName": "",
+      "WindowTitle": "",
+      "TransitionDelayMs": 1000,
+      "PeriodicActions": [],
+      "Steps": [
+        {
+          "Kind": "Key",
+          "Input": "Tab",
+          "Action": "Tap",
+          "HoldMs": 50,
+          "DelayAfterMs": 100
+        }
+      ]
+    }
+  ],
+  "Steps": []
+}

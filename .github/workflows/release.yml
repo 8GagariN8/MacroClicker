@@ -40,7 +40,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref }}
         run: |
-          [xml]$project = Get-Content MacroClicker.csproj -Raw
+          [xml]$project = Get-Content src/MacroClicker/MacroClicker.csproj -Raw
           $version = [string]$project.Project.PropertyGroup.Version
           if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must have the form 2.1.5.' }
           $tag = "v$version"
@@ -61,16 +61,16 @@ jobs:
           package-manager-cache: false
       - name: Engine, storage and recording checks
         run: |
-          dotnet run --project tests/EngineChecks.csproj -c Release
+          dotnet run --project tests/EngineChecks/EngineChecks.csproj -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Engine checks failed.' }
       - name: Web interface regression checks
         run: |
-          Get-ChildItem tests/Web*.cjs | Sort-Object Name | ForEach-Object {
+          Get-ChildItem tests/Web/Web*.cjs | Sort-Object Name | ForEach-Object {
             node $_.FullName
             if ($LASTEXITCODE -ne 0) { throw "Failed: $($_.Name)" }
           }
       - name: Publish self-contained Windows x64 executable
-        run: ./build-windows.ps1
+        run: ./scripts/build-windows.ps1
       - name: Package and verify release
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: MacroClicker-${{ steps.version.outputs.version }}-win-x64
-          path: release-package/*
+          path: artifacts/release/*
           if-no-files-found: error
           retention-days: 14
 
@@ -119,7 +119,7 @@ jobs:
             fi
           fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo 'This version already has a release/draft. Increase Version in MacroClicker.csproj.' >&2
+            echo 'This version already has a release/draft. Increase Version in src/MacroClicker/MacroClicker.csproj.' >&2
             exit 1
           fi
           # Create a draft first. Failed uploads never expose an incomplete public release.

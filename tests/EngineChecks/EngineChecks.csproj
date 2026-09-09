@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/MacroClicker/Core/MacroModels.cs" Link="MacroModels.cs" />
+    <Compile Include="../../src/MacroClicker/Core/MacroTrash.cs" Link="MacroTrash.cs" />
+    <Compile Include="../../src/MacroClicker/Core/MacroRunner.cs" Link="MacroRunner.cs" />
+    <Compile Include="../../src/MacroClicker/Core/PeriodicSchedule.cs" Link="PeriodicSchedule.cs" />
+    <Compile Include="../../src/MacroClicker/Web/MacroEditorDocument.cs" Link="MacroEditorDocument.cs" />
+    <Compile Include="../../src/MacroClicker/Web/WebContentPolicy.cs" Link="WebContentPolicy.cs" />
+    <Compile Include="../../src/MacroClicker/Desktop/DiagnosticLog.cs" Link="DiagnosticLog.cs" />
+    <Compile Include="../../src/MacroClicker/Core/RecordingSession.cs" Link="RecordingSession.cs" />
+  </ItemGroup>
+</Project>

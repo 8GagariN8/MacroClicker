@@ -1,0 +1,27 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const html = fs.readFileSync(path.join(__dirname, '../../src/MacroClicker/Web/index.html'), 'utf8');
+const source = html.slice(html.indexOf('function keyPresentation('), html.indexOf('function render(){'));
+const context = vm.createContext({ el(tag, cls, text = '') { return { tag, cls, textContent: text, children: [], append(child) { this.children.push(child); } }; } });
+vm.runInContext(source, context);
+function presentation(Input, Action = 'Tap') { return context.keyPresentation({ Input, Action }); }
+let passed = 0;
+assert.equal(context.describe({ Kind: 'Key', Input: '4', Action: 'Tap' }), 'Нажать клавишу 4'); passed++;
+assert.equal(presentation('D5').keys[0].label, '5'); passed++;
+assert.equal(presentation('NumPad4').keys[0].label, 'NumPad 4'); passed++;
+const combo = presentation(' Ctrl + Shift + s ');
+assert.equal(combo.action, 'Нажать сочетание');
+assert.equal(combo.keys.map(k => k.label).join(' + '), 'Ctrl + Shift + S'); passed++;
+assert.equal(presentation('Space').keys[0].label, 'Пробел');
+assert.equal(presentation('Return').keys[0].label, 'Enter'); passed++;
+assert.equal(presentation('A', 'Down').action, 'Удерживать клавишу');
+assert.equal(presentation('Ctrl+A', 'Up').action, 'Отпустить клавиши'); passed++;
+const step = { Kind: 'Key', Input: 'ControlKey+D4', Action: 'Tap' };
+const original = JSON.stringify(step); const title = context.stepTitle(step);
+assert.equal(JSON.stringify(step), original);
+assert.equal(title.children.filter(c => c.tag === 'kbd').map(c => c.textContent).join(','), 'Ctrl,4');
+assert.equal(title.children[1].title, 'Код клавиши: ControlKey'); passed++;
+assert.equal(context.stepTitle({ Kind: 'Key', Input: '<img>', Action: 'Tap' }).children[1].textContent, '<img>'); passed++;
+console.log(`PASS ${passed}/8: explicit key labels, keycaps, combinations, unchanged macro data`);
