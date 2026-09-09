@@ -19,7 +19,7 @@
     <Compile Remove="tests/**/*.cs" />
     <EmbeddedResource Include="Assets/MacroClicker.ico" LogicalName="MacroClicker.AppIcon" />
     <EmbeddedResource Include="ИНСТРУКЦИЯ.txt" LogicalName="MacroClicker.Help.QuickStart" />
-    <EmbeddedResource Include="README.md" LogicalName="MacroClicker.Help.Manual" />
+    <EmbeddedResource Include="docs/MANUAL.md" LogicalName="MacroClicker.Help.Manual" />
     <EmbeddedResource Include="WINDOWS-CHECKLIST.md" LogicalName="MacroClicker.Help.WindowsChecks" />
     <EmbeddedResource Include="TEST-RESULTS.md" LogicalName="MacroClicker.Help.TestResults" />
     <EmbeddedResource Include="NUGET-DIAGNOSTICS.md" LogicalName="MacroClicker.Help.NuGet" />
