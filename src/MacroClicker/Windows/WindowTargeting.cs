@@ -13,6 +13,22 @@ internal sealed record WindowTarget(IntPtr Handle, int ProcessId, string Process
 
 internal static class WindowTargeting
 {
+    public static WindowTarget Rename(WindowTarget target, string title)
+    {
+        title = title.Trim();
+        if (title.Length is 0 or > 250 || title.Contains('\0'))
+            throw new TargetWindowException("Укажите заголовок окна длиной от 1 до 250 символов.");
+        if (!Exists(target)) throw new TargetWindowException("Выбранное окно закрыто. Обновите список окон.");
+        // Bound the call so an unresponsive external application cannot hang the editor.
+        if (SendMessageTimeout(target.Handle, 0x000C, IntPtr.Zero, title, 0x0002, 1000, out _) == IntPtr.Zero)
+            throw new TargetWindowException("Не удалось изменить заголовок окна. Приложение не отвечает или Windows запрещает доступ.");
+        var actual = new StringBuilder(1024);
+        GetWindowText(target.Handle, actual, actual.Capacity);
+        if (actual.ToString() != title)
+            throw new TargetWindowException("Приложение не приняло новый заголовок окна.");
+        return target with { Title = title };
+    }
+
     public static IReadOnlyList<WindowTarget> GetVisibleWindows()
     {
         var result = new List<WindowTarget>();
@@ -205,6 +221,10 @@ internal static class WindowTargeting
     private static extern bool EnumWindows(EnumWindowsCallback callback, IntPtr state);
 
     private delegate bool EnumWindowsCallback(IntPtr window, IntPtr state);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr wParam,
+        string lParam, uint flags, uint timeout, out IntPtr result);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

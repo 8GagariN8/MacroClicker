@@ -19,9 +19,9 @@ const posts=[],themes=[];context.document={documentElement:{classList:{toggle:(.
 vm.runInContext(html.slice(html.indexOf('function setTheme('),html.indexOf('function renderLibrary(')),context);
 context.setTheme(false);context.setTheme(true);
 assert.deepEqual(themes,[['light',true],['light',false]]);assert.equal(posts[0][0],'themePreview');assert.equal(posts[0][1].dark,false);assert.equal(posts[1][1].dark,true);passed++;
-function element(tag,cls,text=''){return {tag,textContent:text,children:[],listeners:{},attributes:{},append(...items){this.children.push(...items)},setAttribute(k,v){this.attributes[k]=v},addEventListener(k,v){this.listeners[k]=v},focus(){}}}
+function element(tag,cls,text=''){return {tag,textContent:text,children:[],listeners:{},attributes:{},append(...items){this.children.push(...items)},replaceChildren(...items){this.children=[...items]},setAttribute(k,v){this.attributes[k]=v},addEventListener(k,v){this.listeners[k]=v},focus(){}}}
 let input,button;
-Object.assign(context,{keys:['A'],stepDraft:{Input:'4'},el:element,field:(_,value)=>value,stepInput:()=>input=element('input'),button:(text,_,onclick)=>{button=element('button','',text);button.onclick=onclick;return button}});
+Object.assign(context,{keys:['A'],stepDraft:{Input:'4'},el:element,field:(_,value)=>value,stepInput:()=>{input=element('input');input.value=context.stepDraft.Input;return input},button:(text,_,onclick)=>{button=element('button','',text);button.onclick=onclick;return button}});
 vm.runInContext(html.slice(html.indexOf('function keyEditor('),html.indexOf('function renderStepFields(')),context);
 context.keyEditor(element('div'));
 function event(type,code){let stopped=false,prevented=false;button.listeners[type]({code,preventDefault(){prevented=true},stopPropagation(){stopped=true}});assert.ok(stopped&&prevented)}

@@ -35,7 +35,7 @@ internal sealed class WebMainForm : Form
 
     public WebMainForm()
     {
-        Text = "MacroClicker"; ClientSize = new Size(1240, 820); MinimumSize = new Size(900, 640);
+        Text = $"MacroClicker {Application.ProductVersion.Split('+')[0]}"; ClientSize = new Size(1240, 820); MinimumSize = new Size(900, 640);
         StartPosition = FormStartPosition.CenterScreen;
         Ui.Dark = _settings.DarkTheme; Ui.Theme(this);
         BackColor = _settings.DarkTheme ? Color.FromArgb(33, 33, 33) : Color.FromArgb(250, 249, 247);
@@ -345,6 +345,22 @@ internal sealed class WebMainForm : Form
                         foreach (var target in targets) _windows[target.Handle.ToInt64().ToString()] = target;
                         Send(new { type = "windows", windows = targets.Select(w => new { id = w.Handle.ToInt64().ToString(), title = w.Title, process = w.ProcessName }) }); break;
                     case "coordinate": _coordinateTarget = _windows.GetValueOrDefault(data.GetProperty("id").GetString() ?? ""); break;
+                    case "renameWindow":
+                        var renameId = data.GetProperty("id").GetString() ?? "";
+                        var renameTarget = _windows.GetValueOrDefault(renameId)
+                            ?? throw new TargetWindowException("Выберите окно из актуального списка.");
+                        var renamed = WindowTargeting.Rename(renameTarget, data.GetProperty("title").GetString() ?? "");
+                        _windows[renameId] = renamed;
+                        if (_coordinateTarget?.Handle == renamed.Handle) _coordinateTarget = renamed;
+                        foreach (var boundNode in _document.AllNodes().Where(n => n.SessionTarget?.Handle == renamed.Handle
+                            && n.SessionTarget.ProcessId == renamed.ProcessId))
+                        {
+                            boundNode.WindowTitle = renamed.Title;
+                            boundNode.SessionTarget = renamed;
+                            _dirty = true;
+                        }
+                        Send(new { type = "windowRenamed", id = renameId, title = renamed.Title, process = renamed.ProcessName });
+                        break;
                     case "start": if (!_dialog) _ = RunAsync(); break;
                     case "record": if (!_dialog) _ = RecordAsync(); break;
                     case "settings": Configure(data); break;
@@ -486,8 +502,20 @@ internal sealed class WebMainForm : Form
             _run?.Cancel(); _recordStart?.Cancel();
             while (_run is not null || _recordStart is not null) await Task.Delay(50);
             if (_recorder is not null) FinishRecording();
-            if (_dialog) { Send(new { type = "error", message = "Сначала сохраните или отмените изменения в открытом редакторе." }); return; }
-            if (await CanReplaceAsync()) { _allowClose = true; Close(); }
+            using var closeState = JsonDocument.Parse(await _web.CoreWebView2.ExecuteScriptAsync("window.closeEditorState()"));
+            var changed = _dirty || closeState.RootElement.GetProperty("changed").GetBoolean();
+            if (changed)
+            {
+                var answer = MessageBox.Show(this, "Сохранить изменения макроса, включая правки в открытых редакторах?", "MacroClicker", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (answer == DialogResult.Cancel) return;
+                if (answer == DialogResult.Yes)
+                {
+                    using var editor = JsonDocument.Parse(await _web.CoreWebView2.ExecuteScriptAsync("window.commitEditorsForClose()"));
+                    if (editor.RootElement.TryGetProperty("error", out var error)) throw new InvalidDataException(error.GetString());
+                    SetDocument(editor.RootElement.GetProperty("document")); Save(false);
+                }
+            }
+            _allowClose = true; Close();
         }
         catch (Exception error) { Error(error); }
         finally { _closePending = false; }

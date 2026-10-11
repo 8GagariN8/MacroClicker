@@ -7,17 +7,19 @@ public enum InputKind { Key, Mouse, Pause, Text, Move, Wheel, DoubleClick }
 public enum CoordinateSpace { Window, Screen }
 public enum ButtonAction { Tap, Down, Up }
 public enum PeriodicTrigger { Cycles, Time }
+public enum PeriodicPosition { After, Before }
 
 public sealed class PeriodicAction
 {
     [JsonRequired] public bool Enabled { get; set; } = true;
     [JsonRequired] public PeriodicTrigger Trigger { get; set; }
+    public PeriodicPosition Position { get; set; } = PeriodicPosition.After;
     [JsonRequired] public int EveryCycles { get; set; } = 6;
     [JsonRequired] public int EveryMs { get; set; } = 30000;
     [JsonRequired] public MacroNode Node { get; set; } = new() { Name = "Дополнительные действия", UseActiveWindow = true };
     public PeriodicAction Copy() => new()
     {
-        Enabled = Enabled, Trigger = Trigger, EveryCycles = EveryCycles, EveryMs = EveryMs, Node = Node.Copy()
+        Enabled = Enabled, Position = Position, Trigger = Trigger, EveryCycles = EveryCycles, EveryMs = EveryMs, Node = Node.Copy()
     };
 }
 
@@ -166,7 +168,7 @@ internal static class MacroStorage
                 throw new InvalidDataException("Основной узел с условиями должен содержать действия или паузу.");
             foreach (var rule in parent.PeriodicActions)
             {
-                if (rule is null || !Enum.IsDefined(rule.Trigger) || rule.EveryCycles is < 1 or > 100000 || rule.EveryMs is < 1000 or > 86400000)
+                if (rule is null || !Enum.IsDefined(rule.Position) || !Enum.IsDefined(rule.Trigger) || rule.EveryCycles is < 1 or > 100000 || rule.EveryMs is < 1000 or > 86400000)
                     throw new InvalidDataException("Условие: 1–100000 повторений или 1 секунда–24 часа; оба сохранённых интервала должны быть корректны.");
                 if (rule.Node is null || rule.Node.PeriodicActions is null || rule.Node.PeriodicActions.Count != 0)
                     throw new InvalidDataException("Вложенные дополнительные узлы не поддерживаются.");

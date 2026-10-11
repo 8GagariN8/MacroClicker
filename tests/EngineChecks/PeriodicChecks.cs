@@ -33,6 +33,34 @@ internal static class PeriodicChecks
     {
         var tests = new (string Name, Func<Task> Body)[]
         {
+            ("Before and after rules surround every second main execution", async () =>
+            {
+                var before = Rule(2, "2"); before.Position = PeriodicPosition.Before;
+                var after = Rule(2, "3");
+                await Run(Doc(3, before, after));
+                Assert(Downs().SequenceEqual(new[] { 49, 50, 49, 51, 49 }.Select(k => $"key:{k}:down")), "Before/after order incorrect");
+                Assert(before.Copy().Position == PeriodicPosition.Before, "Copy lost position");
+            }),
+            ("Before time rule waits until next entry and never runs after final main", () =>
+            {
+                var rule = Rule(); rule.Position = PeriodicPosition.Before; rule.Trigger = PeriodicTrigger.Time; rule.EveryMs = 1000;
+                var schedule = new PeriodicSchedule([rule]);
+                Assert(schedule.Begin().Count == 0, "Time rule fired before elapsed time");
+                Assert(schedule.Complete(TimeSpan.FromMilliseconds(1200)).Count == 0, "Before rule ran after main");
+                Assert(schedule.Begin().Single() == rule, "Pending time rule missing");
+                Assert(schedule.Begin().Count == 0, "Pending rule repeated");
+                return Task.CompletedTask;
+            }),
+            ("Older JSON defaults to after and invalid position is rejected", () =>
+            {
+                var json = JsonSerializer.Serialize(Doc(1, Rule()), MacroStorage.Options);
+                var raw = JsonNode.Parse(json)!; raw["Nodes"]![0]!["PeriodicActions"]![0]!.AsObject().Remove("Position");
+                var loaded = raw.Deserialize<MacroDocument>(MacroStorage.Options)!;
+                Assert(loaded.Nodes[0].PeriodicActions[0].Position == PeriodicPosition.After, "Legacy default changed");
+                loaded.Nodes[0].PeriodicActions[0].Position = (PeriodicPosition)99;
+                try { MacroStorage.Validate(loaded); throw new Exception("Invalid position accepted"); } catch (InvalidDataException) { }
+                return Task.CompletedTask;
+            }),
             ("N=6: 5/6/7/11/12 passes preserve 1..5 and insert Enter after parent", async () =>
             {
                 foreach (var count in new[] { 5, 6, 7, 11, 12 })

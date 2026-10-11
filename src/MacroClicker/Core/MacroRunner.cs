@@ -30,17 +30,40 @@ internal sealed class MacroRunner(TimeProvider? timeProvider = null)
                     if (expected is not null) WindowTargeting.EnsureForeground(expected);
                     ReleaseAll();
                     var node = doc.Nodes[n];
+                    var before = schedules[n].Begin();
+                    if (before.Count > 0)
+                    {
+                        var activation = node.Copy(); activation.Steps.Clear();
+                        var parentTarget = await ExecuteNodeAsync(activation, targets[node], doc.SafeMousePauses,
+                            $"Перед узлом «{node.Name}»", status, token);
+                        await ExecuteRulesAsync(before, node, parentTarget, targets, doc.SafeMousePauses, status, token);
+                    }
                     var started = _time.GetTimestamp();
                     var target = await ExecuteNodeAsync(node, targets[node], doc.SafeMousePauses,
                         $"Цикл {cycle + 1} · узел {n + 1}/{doc.Nodes.Count} «{node.Name}»", status, token);
                     var due = schedules[n].Complete(_time.GetElapsedTime(started));
                     expected = target;
-                    foreach (var rule in due)
+                    await ExecuteRulesAsync(due, node, target, targets, doc.SafeMousePauses, status, token);
+                    if (n + 1 < doc.Nodes.Count || doc.RepeatForever || cycle + 1 < doc.RepeatCount)
+                        await TransitionAsync(node, target, status, token);
+                }
+                ReleaseAll();
+                cycle++;
+            }
+            status($"Готово · выполнено циклов: {cycle}");
+        }
+        finally { ReleaseAll(); }
+    }
+
+    private async Task ExecuteRulesAsync(IReadOnlyList<PeriodicAction> due, MacroNode node, WindowTarget target,
+        IReadOnlyDictionary<MacroNode, WindowTarget?> targets, bool safePauses, Action<string> status, CancellationToken token)
+    {
+        foreach (var rule in due)
                     {
                         token.ThrowIfCancellationRequested();
                         WindowTargeting.EnsureForeground(target);
-                        var extra = await ExecuteNodeAsync(rule.Node, targets[rule.Node], doc.SafeMousePauses,
-                            $"Узел «{node.Name}» · повторение {schedules[n].CompletedIterations} завершено · дополнительно «{rule.Node.Name}»", status, token);
+                        var extra = await ExecuteNodeAsync(rule.Node, targets[rule.Node], safePauses,
+                            $"Узел «{node.Name}» · дополнительно «{rule.Node.Name}»", status, token);
                         await TransitionAsync(rule.Node, extra, status, token);
                         // Check the additional window BEFORE restoring the parent, so a manual
                         // focus change or a closed window cannot be hidden by automatic activation.
@@ -53,15 +76,6 @@ internal sealed class MacroRunner(TimeProvider? timeProvider = null)
                         }
                         WindowTargeting.EnsureForeground(target);
                     }
-                    if (n + 1 < doc.Nodes.Count || doc.RepeatForever || cycle + 1 < doc.RepeatCount)
-                        await TransitionAsync(node, target, status, token);
-                }
-                ReleaseAll();
-                cycle++;
-            }
-            status($"Готово · выполнено циклов: {cycle}");
-        }
-        finally { ReleaseAll(); }
     }
 
     private async Task<WindowTarget> ExecuteNodeAsync(MacroNode node, WindowTarget? resolved, bool safePauses,

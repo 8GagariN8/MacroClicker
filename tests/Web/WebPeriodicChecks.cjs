@@ -13,7 +13,7 @@ function create(){
  const fields={},errors=[],events=[];
  const context=vm.createContext({doc:document(),jsonMode:false,dirty:false,nodeIndex:-1,periodicIndex:null,nodeDraft:null,ruleDraft:null,
   kinds:{Key:['Key']},clone:structuredClone,$:id=>fields[id]??={_value:'',get value(){return this._value},set value(v){this._value=String(v)},hidden:false,checked:false,setAttribute(){},focus(){}},
-  toast:m=>errors.push(m),post(){},show(){},renderWindows(){},renderSteps(){},
+  toast:m=>errors.push(m),post(){},show(){},renderWindows(){},renderSteps(){},nodeCloseSnapshot(){return "baseline"},
   close(){context.nodeDraft=null;context.ruleDraft=null;context.periodicIndex=null},
   changed(){context.dirty=true;events.push('change')},markDirty(){context.dirty=true;events.push('dirty')},getDoc(){return context.doc},
   render(){if(context.jsonMode)context.$('jsonText').value=JSON.stringify(context.cleanDocument(context.doc),null,2)}
